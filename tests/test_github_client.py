@@ -48,12 +48,12 @@ def test_list_repositories_maps_models(mock_github_cls: MagicMock) -> None:
 
     assert len(repos) == 2
     assert repos[0].full_name == "alice/one"
-    assert repos[0].visibility == "비공개"
+    assert repos[0].private is True
     assert repos[0].has_pages is True
     assert "github.io" in repos[0].pages_url
     assert repos[0].format_created() == "2025-06-01"
     assert repos[1].owner == "org"
-    assert repos[1].short_description == "(설명 없음)"
+    assert repos[1].description == ""
     user.get_repos.assert_called_once()
 
 

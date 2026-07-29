@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QSize, QUrl, Signal
+from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -18,36 +18,31 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from repomanager.i18n import tr
 from repomanager.models.repository import Repository
-
-OWNER_ALL = "모든 소유자"
-VIS_ALL = "모든 공개범위"
-VIS_PUBLIC = "공개"
-VIS_PRIVATE = "비공개"
+from repomanager.ui.repo_item_delegate import RepoItemDelegate
 
 
 class DualRepoLists(QWidget):
     selection_changed = Signal(int)
     current_repo_changed = Signal(object)  # Repository | None
-    archive_requested = Signal(list)  # list[Repository]
+    archive_requested = Signal(list)
     unarchive_requested = Signal(list)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._all_repos: list[Repository] = []
         self.setObjectName("dualRoot")
+        self._delegate = RepoItemDelegate(self)
 
         self.search = QLineEdit()
-        self.search.setPlaceholderText("이름 또는 설명 검색...")
         self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(self._rebuild_lists)
 
         self.owner_filter = QComboBox()
-        self.owner_filter.addItem(OWNER_ALL)
         self.owner_filter.currentIndexChanged.connect(self._rebuild_lists)
 
         self.visibility_filter = QComboBox()
-        self.visibility_filter.addItems([VIS_ALL, VIS_PUBLIC, VIS_PRIVATE])
         self.visibility_filter.currentIndexChanged.connect(self._rebuild_lists)
 
         filters = QHBoxLayout()
@@ -56,7 +51,7 @@ class DualRepoLists(QWidget):
         filters.addWidget(self.owner_filter)
         filters.addWidget(self.visibility_filter)
 
-        self.active_title = QLabel("활성 (Active)")
+        self.active_title = QLabel()
         self.active_title.setObjectName("paneTitle")
         self.active_count = QLabel("0")
         self.active_count.setObjectName("paneCount")
@@ -65,7 +60,7 @@ class DualRepoLists(QWidget):
         active_header.addStretch(1)
         active_header.addWidget(self.active_count)
 
-        self.archive_title = QLabel("아카이브 (Archive)")
+        self.archive_title = QLabel()
         self.archive_title.setObjectName("paneTitle")
         self.archive_count = QLabel("0")
         self.archive_count.setObjectName("paneCount")
@@ -83,24 +78,16 @@ class DualRepoLists(QWidget):
 
         self.to_archive_btn = QPushButton("→")
         self.to_archive_btn.setObjectName("transferBtn")
-        self.to_archive_btn.setToolTip("선택한 활성 저장소를 아카이브로 이동")
         self.to_archive_btn.clicked.connect(self._emit_archive)
         self.to_active_btn = QPushButton("←")
         self.to_active_btn.setObjectName("transferBtn")
-        self.to_active_btn.setToolTip("선택한 아카이브 저장소를 활성으로 복원")
         self.to_active_btn.clicked.connect(self._emit_unarchive)
-
-        self.open_btn = QPushButton("GitHub에서 열기")
-        self.open_btn.setObjectName("secondaryBtn")
-        self.open_btn.clicked.connect(self._open_selected)
 
         transfer = QVBoxLayout()
         transfer.setSpacing(12)
         transfer.addStretch(1)
         transfer.addWidget(self.to_archive_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         transfer.addWidget(self.to_active_btn, alignment=Qt.AlignmentFlag.AlignCenter)
-        transfer.addSpacing(16)
-        transfer.addWidget(self.open_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         transfer.addStretch(1)
 
         active_pane = QFrame()
@@ -131,15 +118,43 @@ class DualRepoLists(QWidget):
         root.addLayout(filters)
         root.addLayout(lists_row, stretch=1)
 
+        self.retranslate_ui()
         self._update_transfer_buttons()
+
+    def retranslate_ui(self) -> None:
+        self.search.setPlaceholderText(tr("search.placeholder"))
+        self.active_title.setText(tr("pane.active"))
+        self.archive_title.setText(tr("pane.archive"))
+        self.to_archive_btn.setToolTip(tr("tip.to_archive"))
+        self.to_active_btn.setToolTip(tr("tip.to_active"))
+
+        owner_current = self.owner_filter.currentText()
+        owners = [self.owner_filter.itemText(i) for i in range(1, self.owner_filter.count())]
+        self.owner_filter.blockSignals(True)
+        self.owner_filter.clear()
+        self.owner_filter.addItem(tr("filter.owner_all"))
+        self.owner_filter.addItems(owners)
+        idx = self.owner_filter.findText(owner_current)
+        self.owner_filter.setCurrentIndex(idx if idx >= 0 else 0)
+        self.owner_filter.blockSignals(False)
+
+        vis_index = self.visibility_filter.currentIndex()
+        self.visibility_filter.blockSignals(True)
+        self.visibility_filter.clear()
+        self.visibility_filter.addItems(
+            [tr("filter.vis_all"), tr("filter.public"), tr("filter.private")]
+        )
+        self.visibility_filter.setCurrentIndex(max(0, vis_index))
+        self.visibility_filter.blockSignals(False)
+        self._rebuild_lists()
 
     def _make_list(self) -> QListWidget:
         widget = QListWidget()
         widget.setObjectName("repoList")
         widget.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         widget.setAlternatingRowColors(True)
-        widget.setUniformItemSizes(False)
         widget.setSpacing(4)
+        widget.setItemDelegate(self._delegate)
         return widget
 
     def set_repositories(self, repos: list[Repository]) -> None:
@@ -148,7 +163,6 @@ class DualRepoLists(QWidget):
         self._rebuild_lists()
 
     def upsert_repository(self, repo: Repository) -> None:
-        """Replace one repo in the local cache and refresh lists."""
         updated: list[Repository] = []
         found = False
         for existing in self._all_repos:
@@ -187,7 +201,7 @@ class DualRepoLists(QWidget):
         owners = sorted({repo.owner for repo in self._all_repos}, key=str.lower)
         self.owner_filter.blockSignals(True)
         self.owner_filter.clear()
-        self.owner_filter.addItem(OWNER_ALL)
+        self.owner_filter.addItem(tr("filter.owner_all"))
         self.owner_filter.addItems(owners)
         index = self.owner_filter.findText(current)
         self.owner_filter.setCurrentIndex(index if index >= 0 else 0)
@@ -199,11 +213,12 @@ class DualRepoLists(QWidget):
         visibility = self.visibility_filter.currentText()
         result: list[Repository] = []
         for repo in self._all_repos:
-            if owner != OWNER_ALL and repo.owner != owner:
+            if owner != tr("filter.owner_all") and self.owner_filter.currentIndex() > 0:
+                if repo.owner != owner:
+                    continue
+            if visibility == tr("filter.public") and repo.private:
                 continue
-            if visibility == VIS_PUBLIC and repo.private:
-                continue
-            if visibility == VIS_PRIVATE and not repo.private:
+            if visibility == tr("filter.private") and not repo.private:
                 continue
             if query:
                 haystack = f"{repo.full_name} {repo.description}".lower()
@@ -239,25 +254,19 @@ class DualRepoLists(QWidget):
         self._on_selection_changed()
 
     def _make_item(self, repo: Repository) -> QListWidgetItem:
-        visibility = "비공개" if repo.private else "공개"
-        pages = " · Pages" if repo.has_pages else ""
-        text = (
-            f"{repo.full_name}\n"
-            f"{visibility}{pages} · 생성 {repo.format_created()} · 업데이트 {repo.format_updated()}\n"
-            f"{repo.short_description}"
-        )
-        item = QListWidgetItem(text)
+        item = QListWidgetItem(repo.full_name)
         item.setData(Qt.ItemDataRole.UserRole, repo)
-        tip = (
-            f"{repo.html_url}\n"
-            f"생성: {repo.format_created()}\n"
-            f"업데이트: {repo.format_updated()}\n"
-            f"{repo.description or '(설명 없음)'}"
-        )
+        tip_lines = [
+            repo.html_url,
+            f"{tr('list.created')}: {repo.format_created()}",
+            f"{tr('list.updated')}: {repo.format_updated()}",
+            repo.description or tr("list.no_desc"),
+        ]
         if repo.has_pages:
-            tip += f"\nPages: {repo.pages_url}"
-        item.setToolTip(tip)
-        item.setSizeHint(QSize(220, 72))
+            tip_lines.append(f"Pages: {repo.pages_url}")
+        if repo.fork:
+            tip_lines.append("fork")
+        item.setToolTip("\n".join(tip_lines))
         return item
 
     def _selected_from(self, widget: QListWidget) -> list[Repository]:
@@ -269,7 +278,6 @@ class DualRepoLists(QWidget):
         return repos
 
     def _on_selection_changed(self) -> None:
-        # Keep selections mutually exclusive between panes for clearer transfers
         if self.active_list.selectedItems() and self.archive_list.selectedItems():
             sender = self.sender()
             if sender is self.active_list:
@@ -290,7 +298,6 @@ class DualRepoLists(QWidget):
     def _update_transfer_buttons(self) -> None:
         self.to_archive_btn.setEnabled(bool(self.selected_active()))
         self.to_active_btn.setEnabled(bool(self.selected_archived()))
-        self.open_btn.setEnabled(bool(self.selected_repositories()))
 
     def _emit_archive(self) -> None:
         selected = self.selected_active()
@@ -306,9 +313,3 @@ class DualRepoLists(QWidget):
         repo = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(repo, Repository):
             QDesktopServices.openUrl(QUrl(repo.html_url))
-
-    def _open_selected(self) -> None:
-        selected = self.selected_repositories()
-        if not selected:
-            return
-        QDesktopServices.openUrl(QUrl(selected[0].html_url))

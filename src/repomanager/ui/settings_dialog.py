@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, QRunnable, QThreadPool, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -29,6 +30,13 @@ from repomanager.config import (
     set_use_gh_cli,
     token_source_label,
     try_gh_cli_token,
+)
+from repomanager.i18n import (
+    get_saved_language_preference,
+    resolve_language,
+    set_language,
+    set_saved_language_preference,
+    tr,
 )
 from repomanager.services.oauth_device import (
     OAuthError,
@@ -82,12 +90,30 @@ class _DeviceFlowWorker(QRunnable):
 class SettingsDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("설정")
+        self.setWindowTitle(tr("settings.title"))
         self.setMinimumWidth(580)
         self._pool = QThreadPool.globalInstance()
         self._device_worker: _DeviceFlowWorker | None = None
 
-        self.source_label = QLabel(f"현재 토큰 출처: {token_source_label()}")
+        self.source_label = QLabel(tr("settings.token_source", src=token_source_label()))
+
+        # --- Language ---
+        self.language_combo = QComboBox()
+        self._lang_options = [
+            ("auto", tr("settings.lang_auto")),
+            ("ko", tr("settings.lang_ko")),
+            ("en", tr("settings.lang_en")),
+            ("ja", tr("settings.lang_ja")),
+        ]
+        for code, label in self._lang_options:
+            self.language_combo.addItem(label, code)
+        pref = get_saved_language_preference()
+        idx = max(0, self.language_combo.findData(pref))
+        self.language_combo.setCurrentIndex(idx)
+
+        lang_box = QGroupBox(tr("settings.language"))
+        lang_form = QFormLayout(lang_box)
+        lang_form.addRow(tr("settings.language"), self.language_combo)
 
         # --- Permission guide ---
         guide = QTextBrowser()
@@ -181,13 +207,14 @@ class SettingsDialog(QDialog):
         clear_btn.clicked.connect(self._clear_token)
 
         buttons = QDialogButtonBox()
-        save_btn = buttons.addButton("저장", QDialogButtonBox.ButtonRole.AcceptRole)
-        cancel_btn = buttons.addButton("취소", QDialogButtonBox.ButtonRole.RejectRole)
+        save_btn = buttons.addButton(tr("settings.save"), QDialogButtonBox.ButtonRole.AcceptRole)
+        cancel_btn = buttons.addButton(tr("settings.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
         save_btn.clicked.connect(self._save_and_accept)
         cancel_btn.clicked.connect(self.reject)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.source_label)
+        layout.addWidget(lang_box)
         layout.addWidget(guide)
         layout.addWidget(pat_box)
         layout.addWidget(gh_box)
@@ -281,4 +308,7 @@ class SettingsDialog(QDialog):
         set_oauth_client_id(self.client_id_edit.text())
         set_use_gh_cli(self.use_gh.isChecked())
         set_saved_token(self.token_edit.text())
+        pref = str(self.language_combo.currentData() or "auto")
+        set_saved_language_preference(pref)
+        set_language(resolve_language(pref), notify=True)
         self.accept()

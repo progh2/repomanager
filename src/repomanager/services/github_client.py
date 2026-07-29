@@ -288,6 +288,7 @@ class GitHubClient:
             updated_at=updated,
             has_pages=has_pages,
             pages_url=pages_url,
+            fork=bool(getattr(repo, "fork", False)),
         )
 
     def resolve_pages_url(self, owner: str, name: str) -> str:

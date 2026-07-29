@@ -148,14 +148,17 @@ def get_github_token() -> str:
 
 def token_source_label() -> str:
     """Best-effort label for UI status (does not validate the token)."""
+    from repomanager.i18n import tr
+
     load_config()
     env_token = (os.getenv("GITHUB_TOKEN") or "").strip()
     if env_token and not _is_placeholder(env_token):
-        return "환경변수 (.env)"
+        return tr("token.source.env")
     if get_use_gh_cli() and try_gh_cli_token():
-        return "GitHub CLI (gh)"
+        return tr("token.source.gh")
     if get_saved_token():
-        return "설정에 저장됨"
+        return tr("token.source.settings")
     if try_gh_cli_token():
-        return "GitHub CLI (gh)"
-    return "없음"
+        return tr("token.source.gh")
+    return tr("token.source.none")
+

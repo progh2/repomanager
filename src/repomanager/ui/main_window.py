@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from repomanager.i18n import add_listener, init_language, remove_listener, tr
 from repomanager.config import ConfigError, get_github_token, token_source_label
 from repomanager.models.repository import Repository
 from repomanager.services.github_client import RateLimitInfo
@@ -59,6 +60,12 @@ class MainWindow(QMainWindow):
         self._pool = QThreadPool.globalInstance()
         self._busy = False
         self._apply_stylesheet()
+        self._file_menu = None
+        self._help_menu = None
+        self._settings_action = None
+        self._quit_action = None
+        self._delete_help_action = None
+        self._about_action = None
 
         self._build_menu()
 
@@ -77,19 +84,19 @@ class MainWindow(QMainWindow):
         self.detail.toggle_visibility_requested.connect(self._toggle_visibility)
         self.detail.suggest_description_requested.connect(self._suggest_description)
 
-        self.refresh_btn = QPushButton("새로고침")
+        self.refresh_btn = QPushButton()
         self.refresh_btn.setObjectName("primaryBtn")
         self.refresh_btn.clicked.connect(self.load_repositories)
-        self.select_all_btn = QPushButton("전체 선택")
+        self.select_all_btn = QPushButton()
         self.select_all_btn.clicked.connect(self.repo_lists.select_all_visible)
-        self.clear_btn = QPushButton("선택 해제")
+        self.clear_btn = QPushButton()
         self.clear_btn.clicked.connect(self.repo_lists.clear_selection)
-        self.delete_btn = QPushButton("선택 삭제")
+        self.delete_btn = QPushButton()
         self.delete_btn.setObjectName("dangerBtn")
         self.delete_btn.clicked.connect(lambda: self._confirm_action("delete"))
         self.delete_btn.setToolTip(DELETE_SCOPE_HINT)
 
-        self.selection_label = QLabel("선택: 0")
+        self.selection_label = QLabel()
 
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
@@ -106,11 +113,9 @@ class MainWindow(QMainWindow):
         self.progress.setValue(0)
         self.progress.setVisible(False)
 
-        hint = QLabel(
-            "왼쪽=활성, 오른쪽=아카이브. →/← 로 이동하고, 아래 패널에서 설명·공개여부·Pages를 다룹니다."
-        )
-        hint.setObjectName("hintLabel")
-        hint.setWordWrap(True)
+        self.hint = QLabel()
+        self.hint.setObjectName("hintLabel")
+        self.hint.setWordWrap(True)
 
         central = QWidget()
         central.setObjectName("centralRoot")
@@ -121,19 +126,50 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.repo_lists, stretch=1)
         layout.addWidget(self.detail)
         layout.addWidget(self.progress)
-        layout.addWidget(hint)
+        layout.addWidget(self.hint)
         self.setCentralWidget(central)
 
         status = QStatusBar()
         self.setStatusBar(status)
         self._rate_label = QLabel("API —")
         status.addPermanentWidget(self._rate_label)
-        self._auth_label = QLabel(f"인증: {token_source_label()}")
+        self._auth_label = QLabel()
         status.addPermanentWidget(self._auth_label)
-        self._set_status("준비됨. 필요하면 설정을 연 뒤 새로고침하세요.")
 
         self._set_action_buttons_enabled(False)
+        self.retranslate_ui()
+        add_listener(self.retranslate_ui)
         self._maybe_prompt_settings()
+
+    def closeEvent(self, event) -> None:  # noqa: N802
+        remove_listener(self.retranslate_ui)
+        super().closeEvent(event)
+
+    def retranslate_ui(self) -> None:
+        self.setWindowTitle(tr("app.name"))
+        if self._file_menu is not None:
+            self._file_menu.setTitle(tr("menu.file"))
+        if self._help_menu is not None:
+            self._help_menu.setTitle(tr("menu.help"))
+        if self._settings_action is not None:
+            self._settings_action.setText(tr("menu.settings"))
+        if self._quit_action is not None:
+            self._quit_action.setText(tr("menu.quit"))
+        if self._delete_help_action is not None:
+            self._delete_help_action.setText(tr("menu.delete_help"))
+        if self._about_action is not None:
+            self._about_action.setText(tr("menu.about"))
+        self.refresh_btn.setText(tr("btn.refresh"))
+        self.select_all_btn.setText(tr("btn.select_all"))
+        self.clear_btn.setText(tr("btn.clear"))
+        self.delete_btn.setText(tr("btn.delete"))
+        self.hint.setText(tr("hint.main"))
+        self._auth_label.setText(tr("auth.label", src=token_source_label()))
+        count = len(self.repo_lists.selected_repositories())
+        self.selection_label.setText(tr("label.selected", n=count))
+        self.repo_lists.retranslate_ui()
+        self.detail.retranslate_ui()
+        self._set_status(tr("status.ready"))
 
     def _apply_stylesheet(self) -> None:
         qss_path = Path(__file__).with_name("styles.qss")
@@ -142,26 +178,26 @@ class MainWindow(QMainWindow):
 
     def _build_menu(self) -> None:
         menu = self.menuBar()
-        file_menu = menu.addMenu("파일(&F)")
+        self._file_menu = menu.addMenu(tr("menu.file"))
 
-        settings_action = QAction("설정(&S)...", self)
-        settings_action.setShortcut("Ctrl+,")
-        settings_action.triggered.connect(self.open_settings)
-        file_menu.addAction(settings_action)
+        self._settings_action = QAction(tr("menu.settings"), self)
+        self._settings_action.setShortcut("Ctrl+,")
+        self._settings_action.triggered.connect(self.open_settings)
+        self._file_menu.addAction(self._settings_action)
 
-        file_menu.addSeparator()
-        quit_action = QAction("종료(&Q)", self)
-        quit_action.setShortcut("Ctrl+Q")
-        quit_action.triggered.connect(self.close)
-        file_menu.addAction(quit_action)
+        self._file_menu.addSeparator()
+        self._quit_action = QAction(tr("menu.quit"), self)
+        self._quit_action.setShortcut("Ctrl+Q")
+        self._quit_action.triggered.connect(self.close)
+        self._file_menu.addAction(self._quit_action)
 
-        help_menu = menu.addMenu("도움말(&H)")
-        about_delete = QAction("삭제 권한 안내...", self)
-        about_delete.triggered.connect(self.show_delete_permission_help)
-        help_menu.addAction(about_delete)
-        about_action = QAction("이 프로그램은...(About)", self)
-        about_action.triggered.connect(self.show_about)
-        help_menu.addAction(about_action)
+        self._help_menu = menu.addMenu(tr("menu.help"))
+        self._delete_help_action = QAction(tr("menu.delete_help"), self)
+        self._delete_help_action.triggered.connect(self.show_delete_permission_help)
+        self._help_menu.addAction(self._delete_help_action)
+        self._about_action = QAction(tr("menu.about"), self)
+        self._about_action.triggered.connect(self.show_about)
+        self._help_menu.addAction(self._about_action)
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self)
@@ -233,7 +269,7 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, "GitHub 오류", message)
 
     def _on_selection_changed(self, count: int) -> None:
-        self.selection_label.setText(f"선택: {count}")
+        self.selection_label.setText(tr("label.selected", n=count))
 
     def _on_current_repo_changed(self, repo: object) -> None:
         self.detail.set_repository(repo if isinstance(repo, Repository) else None)
@@ -313,7 +349,7 @@ class MainWindow(QMainWindow):
             else self.repo_lists.selected_repositories()
         )
         if not selected:
-            QMessageBox.information(self, "선택 없음", "저장소를 하나 이상 선택하세요.")
+            QMessageBox.information(self, tr("no_selection_title"), tr("no_selection"))
             return
         dialog = ConfirmDialog(action=action, repositories=selected, parent=self)
         if dialog.exec() != ConfirmDialog.DialogCode.Accepted:

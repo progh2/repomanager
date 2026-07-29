@@ -18,20 +18,19 @@ class Repository:
     updated_at: datetime | None
     has_pages: bool
     pages_url: str
+    fork: bool = False
 
     @property
     def full_name(self) -> str:
         return f"{self.owner}/{self.name}"
 
     @property
-    def visibility(self) -> str:
-        return "비공개" if self.private else "공개"
-
-    @property
     def short_description(self) -> str:
+        from repomanager.i18n import tr
+
         text = (self.description or "").strip()
         if not text:
-            return "(설명 없음)"
+            return tr("list.no_desc")
         if len(text) <= 80:
             return text
         return text[:77] + "..."

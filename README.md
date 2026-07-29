@@ -5,6 +5,7 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 
 ## 기능
 
+- 설정에서 언어 변경 (한국어 / English / 日本語, 시스템 기본)
 - 설정 메뉴에서 PAT / GitHub CLI / 웹 로그인(Device Flow)
 - 활성 / 아카이브 이중 목록과 → ← 이동
 - 생성일·업데이트일, 설명 편집, 공개/비공개 토글, GitHub Pages 링크

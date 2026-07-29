@@ -99,22 +99,52 @@ QFrame#listPane, QFrame#detailPane {
     border-radius: 12px;
 }
 
-QPushButton#toggleBtn {
-    min-width: 72px;
-    background: #eef6f4;
-    color: #0d7a6f;
-    border: 1px solid #9ecfc7;
+QPushButton#visibilitySwitch {
+    min-width: 180px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+QPushButton#visibilitySwitch[publicState="public"] {
+    background: #e6f6ec;
+    color: #1b7f4a;
+    border: 2px solid #1b7f4a;
+}
+QPushButton#visibilitySwitch[publicState="public"]:hover {
+    background: #d2efdc;
+}
+QPushButton#visibilitySwitch[publicState="private"] {
+    background: #fdecea;
+    color: #c62828;
+    border: 2px solid #c62828;
+}
+QPushButton#visibilitySwitch[publicState="private"]:hover {
+    background: #fadbd8;
+}
+QPushButton#visibilitySwitch[publicState=""] {
+    background: #f4f6f8;
+    color: #5c6b76;
+    border: 1px solid #cfd9e0;
+}
+
+QPushButton#pagesBtn {
+    border-radius: 8px;
+    padding: 7px 14px;
     font-weight: 600;
 }
-QPushButton#toggleBtn:checked {
+QPushButton#pagesBtn[pagesAvailable="true"] {
     background: #0d7a6f;
     color: #ffffff;
     border: none;
 }
-QPushButton#toggleBtn:!checked {
-    background: #f4f6f8;
-    color: #5c6b76;
-    border: 1px solid #cfd9e0;
+QPushButton#pagesBtn[pagesAvailable="true"]:hover {
+    background: #0b6a61;
+}
+QPushButton#pagesBtn[pagesAvailable="false"],
+QPushButton#pagesBtn:disabled {
+    background: #e8ecef;
+    color: #9aa7b0;
+    border: 1px solid #d5dee4;
 }
 
 QLabel#paneTitle {
