@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
 
         hint = QLabel(
             "더블클릭하면 브라우저에서 저장소를 엽니다. "
-            "Archive/Delete API 실행은 Milestone 4에서 연결됩니다 — 지금은 확인 창까지 동작합니다."
+            "Archive/Delete는 확인 창까지 동작하며, 실제 API 실행은 Milestone 4에서 연결됩니다."
         )
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #555;")

@@ -13,8 +13,8 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 - 실행 전 확인 창(이름 + 설명 + 경고)
 - API 호출은 백그라운드 스레드로 처리 (UI 멈춤 방지)
 
-> **현재 구현 단계:** Milestone 1–2 (앱 골격 + GitHub 목록 로드).  
-> Archive/Delete UI는 Milestone 3–4에서 이어집니다. 로드된 목록에서 확인·필터·브라우저 열기는 이미 사용 가능합니다.
+> **현재 구현 단계:** Milestone 1–3 완료 (목록·필터·선택·확인 창).  
+> **다음:** Milestone 4 — Archive/Delete API를 확인 창에 실제로 연결.
 
 ## 요구 사항
 
