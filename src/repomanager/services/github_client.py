@@ -114,6 +114,16 @@ class GitHubClient:
         except GithubException as exc:
             raise self._map_exception(exc) from exc
 
+    def unarchive_repository(self, owner: str, name: str) -> None:
+        try:
+            def _unarchive() -> None:
+                repo = self._gh.get_repo(f"{owner}/{name}")
+                repo.edit(archived=False)
+
+            self._call(_unarchive)
+        except GithubException as exc:
+            raise self._map_exception(exc) from exc
+
     def delete_repository(self, owner: str, name: str) -> None:
         try:
             def _delete() -> None:

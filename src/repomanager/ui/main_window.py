@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import QThreadPool
 from PySide6.QtGui import QAction, QGuiApplication
 from PySide6.QtWidgets import (
@@ -20,7 +22,7 @@ from repomanager.config import ConfigError, get_github_token, token_source_label
 from repomanager.models.repository import Repository
 from repomanager.services.github_client import RateLimitInfo
 from repomanager.ui.confirm_dialog import ConfirmDialog
-from repomanager.ui.repo_table import RepoTable
+from repomanager.ui.dual_repo_lists import DualRepoLists
 from repomanager.ui.settings_dialog import SettingsDialog
 from repomanager.workers.api_worker import (
     BulkActionResult,
@@ -37,42 +39,54 @@ DELETE_SCOPE_HINT = (
     "(Fine-grained PAT는 Administration: Read and write 필요)"
 )
 
+ACTION_LABELS = {
+    "archive": "아카이브",
+    "unarchive": "활성 복원",
+    "delete": "삭제",
+}
+
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("RepoManager")
-        self.resize(1100, 700)
+        self.resize(1180, 740)
         self._pool = QThreadPool.globalInstance()
         self._busy = False
+        self._apply_stylesheet()
 
         self._build_menu()
 
-        self.repo_table = RepoTable()
-        self.repo_table.selection_changed.connect(self._on_selection_changed)
+        self.repo_lists = DualRepoLists()
+        self.repo_lists.selection_changed.connect(self._on_selection_changed)
+        self.repo_lists.archive_requested.connect(
+            lambda repos: self._confirm_action("archive", repos)
+        )
+        self.repo_lists.unarchive_requested.connect(
+            lambda repos: self._confirm_action("unarchive", repos)
+        )
 
         self.refresh_btn = QPushButton("새로고침")
+        self.refresh_btn.setObjectName("primaryBtn")
         self.refresh_btn.clicked.connect(self.load_repositories)
         self.select_all_btn = QPushButton("전체 선택")
-        self.select_all_btn.clicked.connect(self.repo_table.select_all_visible)
+        self.select_all_btn.clicked.connect(self.repo_lists.select_all_visible)
         self.clear_btn = QPushButton("선택 해제")
-        self.clear_btn.clicked.connect(self.repo_table.clear_selection)
-        self.archive_btn = QPushButton("선택 아카이브")
-        self.archive_btn.clicked.connect(lambda: self._confirm_action("archive"))
+        self.clear_btn.clicked.connect(self.repo_lists.clear_selection)
         self.delete_btn = QPushButton("선택 삭제")
+        self.delete_btn.setObjectName("dangerBtn")
         self.delete_btn.clicked.connect(lambda: self._confirm_action("delete"))
-        self.delete_btn.setStyleSheet("QPushButton { color: #b00020; }")
         self.delete_btn.setToolTip(DELETE_SCOPE_HINT)
 
         self.selection_label = QLabel("선택: 0")
 
         toolbar = QHBoxLayout()
+        toolbar.setSpacing(8)
         toolbar.addWidget(self.refresh_btn)
         toolbar.addWidget(self.select_all_btn)
         toolbar.addWidget(self.clear_btn)
         toolbar.addStretch(1)
         toolbar.addWidget(self.selection_label)
-        toolbar.addWidget(self.archive_btn)
         toolbar.addWidget(self.delete_btn)
 
         self.progress = QProgressBar()
@@ -82,17 +96,19 @@ class MainWindow(QMainWindow):
         self.progress.setVisible(False)
 
         hint = QLabel(
-            "파일 → 설정에서 토큰을 구성하세요. "
-            "「열기」또는 행 더블클릭으로 GitHub 페이지를 엽니다. "
-            "삭제 시 DELETE 입력이 필요하며, delete_repo 권한이 있어야 합니다."
+            "왼쪽은 활성 저장소, 오른쪽은 아카이브입니다. "
+            "가운데 → / ← 로 이동하세요. 더블클릭 또는 「GitHub에서 열기」로 페이지를 확인합니다."
         )
+        hint.setObjectName("hintLabel")
         hint.setWordWrap(True)
-        hint.setStyleSheet("color: #555;")
 
         central = QWidget()
+        central.setObjectName("centralRoot")
         layout = QVBoxLayout(central)
+        layout.setContentsMargins(16, 16, 16, 12)
+        layout.setSpacing(12)
         layout.addLayout(toolbar)
-        layout.addWidget(self.repo_table, stretch=1)
+        layout.addWidget(self.repo_lists, stretch=1)
         layout.addWidget(self.progress)
         layout.addWidget(hint)
         self.setCentralWidget(central)
@@ -107,6 +123,11 @@ class MainWindow(QMainWindow):
 
         self._set_action_buttons_enabled(False)
         self._maybe_prompt_settings()
+
+    def _apply_stylesheet(self) -> None:
+        qss_path = Path(__file__).with_name("styles.qss")
+        if qss_path.is_file():
+            self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
 
     def _build_menu(self) -> None:
         menu = self.menuBar()
@@ -184,7 +205,7 @@ class MainWindow(QMainWindow):
 
     def _on_load_finished(self, result: object) -> None:
         assert isinstance(result, LoadResult)
-        self.repo_table.set_repositories(result.repositories)
+        self.repo_lists.set_repositories(result.repositories)
         self._update_rate_limit(result.rate_limit)
         self._set_busy(
             False,
@@ -200,10 +221,14 @@ class MainWindow(QMainWindow):
     def _on_selection_changed(self, count: int) -> None:
         self.selection_label.setText(f"선택: {count}")
 
-    def _confirm_action(self, action: str) -> None:
+    def _confirm_action(
+        self,
+        action: str,
+        repositories: list[Repository] | None = None,
+    ) -> None:
         if self._busy:
             return
-        selected = self.repo_table.selected_repositories()
+        selected = repositories if repositories is not None else self.repo_lists.selected_repositories()
         if not selected:
             QMessageBox.information(self, "선택 없음", "저장소를 하나 이상 선택하세요.")
             return
@@ -213,7 +238,7 @@ class MainWindow(QMainWindow):
         self._run_bulk_action(action, selected)
 
     def _run_bulk_action(self, action: str, repositories: list[Repository]) -> None:
-        label = "아카이브" if action == "archive" else "삭제"
+        label = ACTION_LABELS.get(action, action)
         self._set_busy(True, status=f"{label} 시작...")
         self.progress.setVisible(True)
         self.progress.setMaximum(len(repositories))
@@ -244,7 +269,7 @@ class MainWindow(QMainWindow):
         self._set_busy(False)
         self._set_action_buttons_enabled(True)
 
-        action_ko = "아카이브" if result.action == "archive" else "삭제"
+        action_ko = ACTION_LABELS.get(result.action, result.action)
         lines = [
             f"작업: {action_ko}",
             f"성공: {result.success_count}",
@@ -292,8 +317,8 @@ class MainWindow(QMainWindow):
     def _set_action_buttons_enabled(self, enabled: bool) -> None:
         self.select_all_btn.setEnabled(enabled)
         self.clear_btn.setEnabled(enabled)
-        self.archive_btn.setEnabled(enabled)
         self.delete_btn.setEnabled(enabled)
+        self.repo_lists.setEnabled(enabled)
 
     def _set_status(self, message: str) -> None:
         self.statusBar().showMessage(message)

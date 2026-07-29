@@ -118,6 +118,12 @@ class BulkActionWorker(QRunnable):
                     else:
                         client.archive_repository(repo.owner, repo.name)
                         result.succeeded.append(repo.full_name)
+                elif self.action == "unarchive":
+                    if not repo.archived:
+                        result.succeeded.append(repo.full_name)
+                    else:
+                        client.unarchive_repository(repo.owner, repo.name)
+                        result.succeeded.append(repo.full_name)
                 elif self.action == "delete":
                     client.delete_repository(repo.owner, repo.name)
                     result.succeeded.append(repo.full_name)
