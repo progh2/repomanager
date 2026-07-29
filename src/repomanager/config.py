@@ -141,8 +141,8 @@ def get_github_token() -> str:
         return gh_token
 
     raise ConfigError(
-        "GitHub token is not configured. Open Settings (⚙) to paste a PAT, "
-        "import from GitHub CLI, or sign in with GitHub (Device Flow)."
+        "GitHub 토큰이 없습니다. 파일 → 설정에서 PAT를 넣거나, "
+        "GitHub CLI에서 가져오거나, 웹 로그인을 사용하세요."
     )
 
 
@@ -151,11 +151,11 @@ def token_source_label() -> str:
     load_config()
     env_token = (os.getenv("GITHUB_TOKEN") or "").strip()
     if env_token and not _is_placeholder(env_token):
-        return "env (.env / GITHUB_TOKEN)"
+        return "환경변수 (.env)"
     if get_use_gh_cli() and try_gh_cli_token():
         return "GitHub CLI (gh)"
     if get_saved_token():
-        return "Settings"
+        return "설정에 저장됨"
     if try_gh_cli_token():
         return "GitHub CLI (gh)"
-    return "not set"
+    return "없음"

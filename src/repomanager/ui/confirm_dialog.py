@@ -28,7 +28,7 @@ class ConfirmDialog(QDialog):
         super().__init__(parent)
         self._action = action.lower()
         self._is_delete = self._action == "delete"
-        self.setWindowTitle(f"Confirm {action}")
+        self.setWindowTitle("삭제 확인" if self._is_delete else "아카이브 확인")
         self.setMinimumWidth(520)
         self.setMinimumHeight(400)
 
@@ -59,7 +59,9 @@ class ConfirmDialog(QDialog):
         confirm_hint: QLabel | None = None
         if self._is_delete:
             confirm_hint = QLabel(
-                f'계속하려면 아래 입력란에 <b>{DELETE_CONFIRM_WORD}</b> 를 입력하세요.'
+                f'계속하려면 아래에 <b>{DELETE_CONFIRM_WORD}</b> 를 입력하세요.<br>'
+                "삭제에는 <b>delete_repo</b> 권한이 필요합니다. "
+                "권한이 없으면 도움말 → 삭제 권한 안내를 보세요."
             )
             confirm_hint.setWordWrap(True)
             self._confirm_input = QLineEdit()
@@ -71,7 +73,7 @@ class ConfirmDialog(QDialog):
             "영구 삭제" if self._is_delete else "아카이브",
             QDialogButtonBox.ButtonRole.AcceptRole,
         )
-        self._buttons.addButton(QDialogButtonBox.StandardButton.Cancel)
+        self._buttons.addButton("취소", QDialogButtonBox.ButtonRole.RejectRole)
         self._accept_btn.setDefault(False)
         self._buttons.accepted.connect(self.accept)
         self._buttons.rejected.connect(self.reject)
