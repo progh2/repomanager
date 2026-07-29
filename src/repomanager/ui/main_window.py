@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QThreadPool
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -15,10 +16,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from repomanager.config import ConfigError, get_github_token, token_source_label
 from repomanager.models.repository import Repository
 from repomanager.services.github_client import RateLimitInfo
 from repomanager.ui.confirm_dialog import ConfirmDialog
 from repomanager.ui.repo_table import RepoTable
+from repomanager.ui.settings_dialog import SettingsDialog
 from repomanager.workers.api_worker import (
     BulkActionResult,
     BulkActionWorker,
@@ -34,6 +37,8 @@ class MainWindow(QMainWindow):
         self.resize(1100, 700)
         self._pool = QThreadPool.globalInstance()
         self._busy = False
+
+        self._build_menu()
 
         self.repo_table = RepoTable()
         self.repo_table.selection_changed.connect(self._on_selection_changed)
@@ -68,9 +73,8 @@ class MainWindow(QMainWindow):
         self.progress.setVisible(False)
 
         hint = QLabel(
-            "더블클릭하면 브라우저에서 저장소를 엽니다. "
-            "Owner 필터로 개인/조직 저장소를 나눌 수 있습니다. "
-            "삭제 전 확인 창에서 DELETE를 입력해야 합니다."
+            "설정(⚙)에서 토큰을 넣거나 GitHub 웹 로그인(Device Flow) / gh CLI를 사용하세요. "
+            "더블클릭으로 저장소를 열고, 삭제 시 DELETE 입력이 필요합니다."
         )
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #555;")
@@ -87,9 +91,50 @@ class MainWindow(QMainWindow):
         self.setStatusBar(status)
         self._rate_label = QLabel("API —")
         status.addPermanentWidget(self._rate_label)
-        self._set_status("Ready. Click Refresh to load repositories.")
+        self._auth_label = QLabel(f"Auth: {token_source_label()}")
+        status.addPermanentWidget(self._auth_label)
+        self._set_status("Ready. Open Settings if needed, then Refresh.")
 
         self._set_action_buttons_enabled(False)
+        self._maybe_prompt_settings()
+
+    def _build_menu(self) -> None:
+        menu = self.menuBar()
+        file_menu = menu.addMenu("&File")
+        settings_action = QAction("&Settings...", self)
+        settings_action.setShortcut("Ctrl+,")
+        settings_action.triggered.connect(self.open_settings)
+        file_menu.addAction(settings_action)
+        file_menu.addSeparator()
+        quit_action = QAction("&Quit", self)
+        quit_action.setShortcut("Ctrl+Q")
+        quit_action.triggered.connect(self.close)
+        file_menu.addAction(quit_action)
+
+        account_menu = menu.addMenu("&Account")
+        account_settings = QAction("GitHub &credentials...", self)
+        account_settings.triggered.connect(self.open_settings)
+        account_menu.addAction(account_settings)
+
+    def open_settings(self) -> None:
+        dialog = SettingsDialog(self)
+        if dialog.exec() == SettingsDialog.DialogCode.Accepted:
+            self._auth_label.setText(f"Auth: {token_source_label()}")
+            self._set_status("Settings saved.")
+
+    def _maybe_prompt_settings(self) -> None:
+        try:
+            get_github_token()
+        except ConfigError:
+            answer = QMessageBox.question(
+                self,
+                "GitHub token needed",
+                "GitHub 토큰이 아직 없습니다.\n설정 창에서 PAT 입력, gh CLI, "
+                "또는 웹 로그인(Device Flow)을 구성할까요?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if answer == QMessageBox.StandardButton.Yes:
+                self.open_settings()
 
     def load_repositories(self) -> None:
         if self._busy:

@@ -5,6 +5,7 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 
 ## 기능
 
+- 설정 메뉴에서 PAT / GitHub CLI / 웹 로그인(Device Flow)
 - 인증된 계정의 저장소 목록 불러오기 (owner / organization / collaborator)
 - **Public / Private**, 설명(description), 이름·소유자, 업데이트 시각 표시
 - 검색·**Owner**·가시성·Archived 필터, 다중 선택
@@ -50,27 +51,60 @@ GITHUB_TOKEN=ghp_your_token_here
 python -m repomanager
 ```
 
-## GitHub Token
+## GitHub 인증
 
-1. GitHub → **Settings** → **Developer settings** → **Personal access tokens**
-2. **Classic** 권장 스코프:
-   - `repo` — private 저장소 포함 목록/아카이브
-   - `delete_repo` — 삭제 기능 사용 시 필수
-   - `read:org` — 조직 저장소 목록에 필요할 수 있음
-3. **Fine-grained**인 경우: 대상 저장소 접근 + **Administration** (archive/delete)
+다음 중 하나로 인증합니다 (우선순위: 환경변수 → Settings 저장 토큰 → `gh`).
 
-토큰은 `.env`에만 두고 **절대 커밋하지 마세요.**
+### 1) 설정 메뉴 (권장)
+
+앱 실행 후 **File → Settings** (`Ctrl+,`) 또는 **Account → GitHub credentials**.
+
+- **Personal Access Token** 붙여넣기 후 Save
+- 또는 **Import from GitHub CLI** (`gh auth login` 되어 있을 때)
+- 또는 **Sign in with GitHub (browser)** — OAuth Device Flow (아래)
+
+토큰은 OS 사용자 설정의 Qt `QSettings`에 저장됩니다 (`.env`보다 편함).
+
+### 2) `.env` / 환경변수
+
+```env
+GITHUB_TOKEN=ghp_your_token_here
+GITHUB_OAUTH_CLIENT_ID=Iv1...   # 웹 로그인용(선택)
+```
+
+### 3) 웹 로그인 (OAuth Device Flow)
+
+브라우저 로그인은 가능하지만, **GitHub OAuth App의 Client ID**가 필요합니다.  
+(일반 웹사이트처럼 “아무 앱이나” 바로 로그인하는 방식은 GitHub가 허용하지 않습니다.)
+
+1. https://github.com/settings/developers → **New OAuth App**
+2. Application name: `RepoManager` (자유)
+3. Homepage URL: `https://github.com/progh2/repomanager`
+4. Authorization callback URL: `http://127.0.0.1`
+5. 생성 후 **Device Flow** 활성화, **Client ID**만 Settings에 입력  
+   (**Client Secret은 데스크톱 앱에 넣지 마세요**)
+6. Settings에서 **Sign in with GitHub** → 브라우저에 표시된 코드 입력
+
+요청 스코프: `repo`, `delete_repo`, `read:org`
+
+### Classic PAT 스코프
+
+- `repo` — private 포함 목록/아카이브
+- `delete_repo` — 삭제
+- `read:org` — 조직 저장소(필요 시)
 
 ## 사용 방법
 
-1. 앱 실행 → **Refresh**로 저장소 목록 로드
-2. Owner / Public·Private / Archived 필터와 검색으로 대상 좁히기
-3. 설명·가시성 확인, 필요 시 행을 더블클릭해 GitHub에서 확인
-4. 체크박스로 여러 저장소 선택
-5. **Archive** 또는 **Delete** 클릭
-6. 확인 창에서 이름·설명 검토 (삭제는 `DELETE` 입력 필요)
-7. 진행률과 성공/실패 요약 확인 후 목록이 자동 새로고침됩니다
-8. 상태바 오른쪽에서 API rate limit 잔여량을 확인합니다
+1. 앱 실행 → 토큰이 없으면 Settings 안내
+2. **File → Settings**에서 인증 구성 후 Save
+3. **Refresh**로 저장소 목록 로드
+4. Owner / Public·Private / Archived 필터와 검색으로 대상 좁히기
+5. 설명·가시성 확인, 필요 시 행을 더블클릭해 GitHub에서 확인
+6. 체크박스로 여러 저장소 선택
+7. **Archive** 또는 **Delete** 클릭
+8. 확인 창에서 이름·설명 검토 (삭제는 `DELETE` 입력 필요)
+9. 진행률과 성공/실패 요약 확인 후 목록이 자동 새로고침됩니다
+10. 상태바에서 Auth 소스와 API rate limit을 확인합니다
 
 ## 주의
 
