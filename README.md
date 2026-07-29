@@ -13,8 +13,8 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 - 실행 전 확인 창(이름 + 설명 + 경고)
 - API 호출은 백그라운드 스레드로 처리 (UI 멈춤 방지)
 
-> **현재 구현 단계:** Milestone 1–3 완료 (목록·필터·선택·확인 창).  
-> **다음:** Milestone 4 — Archive/Delete API를 확인 창에 실제로 연결.
+> **현재 구현 단계:** Milestone 1–4 완료 (목록·필터·선택·확인 창·일괄 Archive/Delete).  
+> **다음:** Milestone 5 — org 필터, rate limit, 패키징, v0.1.0 릴리스.
 
 ## 요구 사항
 
@@ -66,8 +66,10 @@ python -m repomanager
 
 1. 앱 실행 → **Refresh**로 저장소 목록 로드
 2. 설명·Public/Private 확인, 필요 시 행을 더블클릭해 GitHub에서 확인
-3. 체크박스로 여러 저장소 선택 (Milestone 4에서 Archive/Delete 연결)
-4. **Archive** 또는 **Delete** 클릭 후 확인 창에서 이름·설명 검토
+3. 체크박스로 여러 저장소 선택
+4. **Archive** 또는 **Delete** 클릭
+5. 확인 창에서 이름·설명 검토 (삭제는 `DELETE` 입력 필요)
+6. 진행률과 성공/실패 요약 확인 후 목록이 자동 새로고침됩니다
 
 ## 주의
 
