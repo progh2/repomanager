@@ -3,6 +3,8 @@
 수업·실습 후 남는 GitHub 저장소를 GUI에서 골라 **아카이브**하거나 **삭제**하는 데스크톱 앱입니다.  
 Windows, macOS, Linux에서 동작합니다 (PySide6).
 
+![Screenshot](./screenshot.png)
+
 ## 기능
 
 - 설정에서 언어 변경 (한국어 / English / 日本語, 시스템 기본)
