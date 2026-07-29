@@ -21,14 +21,19 @@ from PySide6.QtWidgets import (
 from repomanager.config import ConfigError, get_github_token, token_source_label
 from repomanager.models.repository import Repository
 from repomanager.services.github_client import RateLimitInfo
+from repomanager.ui.about_dialog import AboutDialog
 from repomanager.ui.confirm_dialog import ConfirmDialog
 from repomanager.ui.dual_repo_lists import DualRepoLists
+from repomanager.ui.repo_detail_panel import RepoDetailPanel
 from repomanager.ui.settings_dialog import SettingsDialog
 from repomanager.workers.api_worker import (
     BulkActionResult,
     BulkActionWorker,
     ListReposWorker,
     LoadResult,
+    SuggestDescriptionWorker,
+    ToggleVisibilityWorker,
+    UpdateDescriptionWorker,
 )
 
 DELETE_SCOPE_HINT = (
@@ -50,7 +55,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("RepoManager")
-        self.resize(1180, 740)
+        self.resize(1200, 820)
         self._pool = QThreadPool.globalInstance()
         self._busy = False
         self._apply_stylesheet()
@@ -59,12 +64,18 @@ class MainWindow(QMainWindow):
 
         self.repo_lists = DualRepoLists()
         self.repo_lists.selection_changed.connect(self._on_selection_changed)
+        self.repo_lists.current_repo_changed.connect(self._on_current_repo_changed)
         self.repo_lists.archive_requested.connect(
             lambda repos: self._confirm_action("archive", repos)
         )
         self.repo_lists.unarchive_requested.connect(
             lambda repos: self._confirm_action("unarchive", repos)
         )
+
+        self.detail = RepoDetailPanel()
+        self.detail.save_description_requested.connect(self._save_description)
+        self.detail.toggle_visibility_requested.connect(self._toggle_visibility)
+        self.detail.suggest_description_requested.connect(self._suggest_description)
 
         self.refresh_btn = QPushButton("새로고침")
         self.refresh_btn.setObjectName("primaryBtn")
@@ -96,8 +107,7 @@ class MainWindow(QMainWindow):
         self.progress.setVisible(False)
 
         hint = QLabel(
-            "왼쪽은 활성 저장소, 오른쪽은 아카이브입니다. "
-            "가운데 → / ← 로 이동하세요. 더블클릭 또는 「GitHub에서 열기」로 페이지를 확인합니다."
+            "왼쪽=활성, 오른쪽=아카이브. →/← 로 이동하고, 아래 패널에서 설명·공개여부·Pages를 다룹니다."
         )
         hint.setObjectName("hintLabel")
         hint.setWordWrap(True)
@@ -109,6 +119,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(12)
         layout.addLayout(toolbar)
         layout.addWidget(self.repo_lists, stretch=1)
+        layout.addWidget(self.detail)
         layout.addWidget(self.progress)
         layout.addWidget(hint)
         self.setCentralWidget(central)
@@ -138,10 +149,6 @@ class MainWindow(QMainWindow):
         settings_action.triggered.connect(self.open_settings)
         file_menu.addAction(settings_action)
 
-        help_delete = QAction("삭제 권한 안내(&D)...", self)
-        help_delete.triggered.connect(self.show_delete_permission_help)
-        file_menu.addAction(help_delete)
-
         file_menu.addSeparator()
         quit_action = QAction("종료(&Q)", self)
         quit_action.setShortcut("Ctrl+Q")
@@ -152,12 +159,18 @@ class MainWindow(QMainWindow):
         about_delete = QAction("삭제 권한 안내...", self)
         about_delete.triggered.connect(self.show_delete_permission_help)
         help_menu.addAction(about_delete)
+        about_action = QAction("이 프로그램은...(About)", self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self)
         if dialog.exec() == SettingsDialog.DialogCode.Accepted:
             self._auth_label.setText(f"인증: {token_source_label()}")
             self._set_status("설정을 저장했습니다.")
+
+    def show_about(self) -> None:
+        AboutDialog(self).exec()
 
     def show_delete_permission_help(self) -> None:
         box = QMessageBox(self)
@@ -206,6 +219,7 @@ class MainWindow(QMainWindow):
     def _on_load_finished(self, result: object) -> None:
         assert isinstance(result, LoadResult)
         self.repo_lists.set_repositories(result.repositories)
+        self.detail.set_repository(None)
         self._update_rate_limit(result.rate_limit)
         self._set_busy(
             False,
@@ -221,6 +235,71 @@ class MainWindow(QMainWindow):
     def _on_selection_changed(self, count: int) -> None:
         self.selection_label.setText(f"선택: {count}")
 
+    def _on_current_repo_changed(self, repo: object) -> None:
+        self.detail.set_repository(repo if isinstance(repo, Repository) else None)
+
+    def _save_description(self, repo: object, description: str) -> None:
+        if self._busy or not isinstance(repo, Repository):
+            return
+        self._set_busy(True, status="설명 저장 중...")
+        worker = UpdateDescriptionWorker(repo, description)
+        worker.signals.status.connect(self._set_status)
+        worker.signals.error.connect(self._on_edit_error)
+        worker.signals.finished.connect(self._on_repo_updated)
+        self._pool.start(worker)
+
+    def _toggle_visibility(self, repo: object) -> None:
+        if self._busy or not isinstance(repo, Repository):
+            return
+        target = "비공개" if not repo.private else "공개"
+        answer = QMessageBox.question(
+            self,
+            "공개 여부 변경",
+            f"{repo.full_name} 저장소를 {target}로 바꿀까요?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            self.detail.set_repository(repo)
+            return
+        self._set_busy(True, status="공개 여부 변경 중...")
+        worker = ToggleVisibilityWorker(repo)
+        worker.signals.status.connect(self._set_status)
+        worker.signals.error.connect(self._on_edit_error)
+        worker.signals.finished.connect(self._on_repo_updated)
+        self._pool.start(worker)
+
+    def _suggest_description(self, repo: object) -> None:
+        if self._busy or not isinstance(repo, Repository):
+            return
+        self._set_busy(True, status="AI 추천 준비 중...")
+        worker = SuggestDescriptionWorker(repo)
+        worker.signals.status.connect(self._set_status)
+        worker.signals.error.connect(self._on_suggest_error)
+        worker.signals.finished.connect(self._on_suggest_finished)
+        self._pool.start(worker)
+
+    def _on_repo_updated(self, repo: object) -> None:
+        assert isinstance(repo, Repository)
+        self.repo_lists.upsert_repository(repo)
+        self.detail.set_repository(repo)
+        self._set_busy(False, status=f"{repo.full_name} 정보를 업데이트했습니다.")
+        self._set_action_buttons_enabled(True)
+
+    def _on_edit_error(self, message: str) -> None:
+        self._set_busy(False, status="수정 실패.")
+        self._set_action_buttons_enabled(True)
+        QMessageBox.critical(self, "수정 실패", message)
+
+    def _on_suggest_finished(self, text: str) -> None:
+        self.detail.apply_suggestion(text)
+        self._set_busy(False, status="AI 추천 설명을 반영했습니다. 필요하면 수정 후 저장하세요.")
+        self._set_action_buttons_enabled(True)
+
+    def _on_suggest_error(self, message: str) -> None:
+        self._set_busy(False, status="AI 추천 실패.")
+        self._set_action_buttons_enabled(True)
+        QMessageBox.warning(self, "AI 추천", message)
+
     def _confirm_action(
         self,
         action: str,
@@ -228,7 +307,11 @@ class MainWindow(QMainWindow):
     ) -> None:
         if self._busy:
             return
-        selected = repositories if repositories is not None else self.repo_lists.selected_repositories()
+        selected = (
+            repositories
+            if repositories is not None
+            else self.repo_lists.selected_repositories()
+        )
         if not selected:
             QMessageBox.information(self, "선택 없음", "저장소를 하나 이상 선택하세요.")
             return
@@ -319,6 +402,7 @@ class MainWindow(QMainWindow):
         self.clear_btn.setEnabled(enabled)
         self.delete_btn.setEnabled(enabled)
         self.repo_lists.setEnabled(enabled)
+        self.detail.setEnabled(enabled)
 
     def _set_status(self, message: str) -> None:
         self.statusBar().showMessage(message)

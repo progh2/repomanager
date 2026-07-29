@@ -136,6 +136,45 @@ class GitHubClient:
                 raise self._map_delete_forbidden(exc) from exc
             raise self._map_exception(exc) from exc
 
+    def update_description(self, owner: str, name: str, description: str) -> Repository:
+        try:
+            def _edit() -> Repository:
+                repo = self._gh.get_repo(f"{owner}/{name}")
+                repo.edit(description=description)
+                return self._to_model(repo)
+
+            return self._call(_edit)
+        except GithubException as exc:
+            raise self._map_exception(exc) from exc
+
+    def set_private(self, owner: str, name: str, private: bool) -> Repository:
+        try:
+            def _edit() -> Repository:
+                repo = self._gh.get_repo(f"{owner}/{name}")
+                repo.edit(private=private)
+                return self._to_model(repo)
+
+            return self._call(_edit)
+        except GithubException as exc:
+            raise self._map_exception(exc) from exc
+
+    def get_readme_excerpt(self, owner: str, name: str, *, max_chars: int = 4000) -> str:
+        try:
+            def _read() -> str:
+                repo = self._gh.get_repo(f"{owner}/{name}")
+                try:
+                    content = repo.get_readme()
+                except GithubException as exc:
+                    if exc.status == 404:
+                        return ""
+                    raise
+                text = content.decoded_content.decode("utf-8", errors="replace")
+                return text[:max_chars]
+
+            return self._call(_read)
+        except GithubException as exc:
+            raise self._map_exception(exc) from exc
+
     def get_oauth_scopes(self) -> list[str] | None:
         """Return classic OAuth scopes, or None for fine-grained tokens."""
         try:
@@ -217,10 +256,27 @@ class GitHubClient:
         return "rate limit" in message or "secondary rate" in message
 
     @staticmethod
-    def _to_model(repo: GhRepository) -> Repository:
-        updated = repo.updated_at
-        if updated is not None and updated.tzinfo is None:
-            updated = updated.replace(tzinfo=timezone.utc)
+    def _normalize_dt(value: object) -> datetime | None:
+        if not isinstance(value, datetime):
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
+
+    @staticmethod
+    def _guess_pages_url(owner: str, name: str, has_pages: bool) -> str:
+        if not has_pages:
+            return ""
+        if name.lower() == f"{owner.lower()}.github.io":
+            return f"https://{owner}.github.io/"
+        return f"https://{owner}.github.io/{name}/"
+
+    @classmethod
+    def _to_model(cls, repo: GhRepository) -> Repository:
+        created = cls._normalize_dt(repo.created_at)
+        updated = cls._normalize_dt(repo.updated_at)
+        has_pages = bool(getattr(repo, "has_pages", False))
+        pages_url = cls._guess_pages_url(repo.owner.login, repo.name, has_pages)
         return Repository(
             owner=repo.owner.login,
             name=repo.name,
@@ -228,8 +284,31 @@ class GitHubClient:
             description=repo.description or "",
             html_url=repo.html_url,
             archived=bool(repo.archived),
-            updated_at=updated if isinstance(updated, datetime) else None,
+            created_at=created,
+            updated_at=updated,
+            has_pages=has_pages,
+            pages_url=pages_url,
         )
+
+    def resolve_pages_url(self, owner: str, name: str) -> str:
+        """Best-effort Pages URL (API first, then convention)."""
+        try:
+            def _resolve() -> str:
+                repo = self._gh.get_repo(f"{owner}/{name}")
+                if not bool(getattr(repo, "has_pages", False)):
+                    return ""
+                try:
+                    pages = repo.get_pages()
+                    url = getattr(pages, "html_url", "") or ""
+                    if url:
+                        return url
+                except GithubException:
+                    pass
+                return self._guess_pages_url(owner, name, True)
+
+            return self._call(_resolve)
+        except GithubException as exc:
+            raise self._map_exception(exc) from exc
 
     @staticmethod
     def _map_exception(exc: GithubException) -> GitHubClientError:

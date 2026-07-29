@@ -28,6 +28,7 @@ VIS_PRIVATE = "비공개"
 
 class DualRepoLists(QWidget):
     selection_changed = Signal(int)
+    current_repo_changed = Signal(object)  # Repository | None
     archive_requested = Signal(list)  # list[Repository]
     unarchive_requested = Signal(list)
 
@@ -146,6 +147,21 @@ class DualRepoLists(QWidget):
         self._rebuild_owner_filter()
         self._rebuild_lists()
 
+    def upsert_repository(self, repo: Repository) -> None:
+        """Replace one repo in the local cache and refresh lists."""
+        updated: list[Repository] = []
+        found = False
+        for existing in self._all_repos:
+            if existing.full_name == repo.full_name:
+                updated.append(repo)
+                found = True
+            else:
+                updated.append(existing)
+        if not found:
+            updated.append(repo)
+        self._all_repos = updated
+        self._rebuild_lists()
+
     def selected_repositories(self) -> list[Repository]:
         return self._selected_from(self.active_list) + self._selected_from(self.archive_list)
 
@@ -224,11 +240,24 @@ class DualRepoLists(QWidget):
 
     def _make_item(self, repo: Repository) -> QListWidgetItem:
         visibility = "비공개" if repo.private else "공개"
-        text = f"{repo.full_name}\n{visibility} · {repo.short_description}"
+        pages = " · Pages" if repo.has_pages else ""
+        text = (
+            f"{repo.full_name}\n"
+            f"{visibility}{pages} · 생성 {repo.format_created()} · 업데이트 {repo.format_updated()}\n"
+            f"{repo.short_description}"
+        )
         item = QListWidgetItem(text)
         item.setData(Qt.ItemDataRole.UserRole, repo)
-        item.setToolTip(f"{repo.html_url}\n{repo.description or '(설명 없음)'}")
-        item.setSizeHint(QSize(200, 56))
+        tip = (
+            f"{repo.html_url}\n"
+            f"생성: {repo.format_created()}\n"
+            f"업데이트: {repo.format_updated()}\n"
+            f"{repo.description or '(설명 없음)'}"
+        )
+        if repo.has_pages:
+            tip += f"\nPages: {repo.pages_url}"
+        item.setToolTip(tip)
+        item.setSizeHint(QSize(220, 72))
         return item
 
     def _selected_from(self, widget: QListWidget) -> list[Repository]:
@@ -253,6 +282,9 @@ class DualRepoLists(QWidget):
                 self.active_list.blockSignals(False)
         count = len(self.selected_repositories())
         self.selection_changed.emit(count)
+        selected = self.selected_repositories()
+        current = selected[0] if len(selected) == 1 else None
+        self.current_repo_changed.emit(current)
         self._update_transfer_buttons()
 
     def _update_transfer_buttons(self) -> None:

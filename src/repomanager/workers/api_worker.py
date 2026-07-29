@@ -144,3 +144,92 @@ class BulkActionWorker(QRunnable):
             self.signals.rate_limit.emit(None)
 
         self.signals.finished.emit(result)
+
+
+class RepoEditSignals(QObject):
+    finished = Signal(object)  # Repository
+    error = Signal(str)
+    status = Signal(str)
+
+
+class UpdateDescriptionWorker(QRunnable):
+    def __init__(self, repo: Repository, description: str) -> None:
+        super().__init__()
+        self.repo = repo
+        self.description = description
+        self.signals = RepoEditSignals()
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            client = GitHubClient(get_github_token())
+            self.signals.status.emit(f"설명 저장 중: {self.repo.full_name}")
+            updated = client.update_description(
+                self.repo.owner, self.repo.name, self.description
+            )
+            self.signals.finished.emit(updated)
+        except (ConfigError, GitHubClientError) as exc:
+            self.signals.error.emit(str(exc))
+        except Exception as exc:  # noqa: BLE001
+            self.signals.error.emit(f"Unexpected error: {exc}")
+
+
+class ToggleVisibilityWorker(QRunnable):
+    def __init__(self, repo: Repository) -> None:
+        super().__init__()
+        self.repo = repo
+        self.signals = RepoEditSignals()
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            client = GitHubClient(get_github_token())
+            new_private = not self.repo.private
+            label = "비공개" if new_private else "공개"
+            self.signals.status.emit(f"{self.repo.full_name} → {label}")
+            updated = client.set_private(self.repo.owner, self.repo.name, new_private)
+            self.signals.finished.emit(updated)
+        except (ConfigError, GitHubClientError) as exc:
+            self.signals.error.emit(str(exc))
+        except Exception as exc:  # noqa: BLE001
+            self.signals.error.emit(f"Unexpected error: {exc}")
+
+
+class SuggestSignals(QObject):
+    finished = Signal(str)
+    error = Signal(str)
+    status = Signal(str)
+
+
+class SuggestDescriptionWorker(QRunnable):
+    def __init__(self, repo: Repository) -> None:
+        super().__init__()
+        self.repo = repo
+        self.signals = SuggestSignals()
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            from repomanager.services.ai_assist import (
+                CopilotAccessError,
+                suggest_repository_description,
+            )
+
+            token = get_github_token()
+            client = GitHubClient(token)
+            self.signals.status.emit("README와 저장소 정보를 확인하는 중...")
+            readme = client.get_readme_excerpt(self.repo.owner, self.repo.name)
+            self.signals.status.emit("AI 추천 설명을 생성하는 중...")
+            suggestion = suggest_repository_description(
+                token,
+                full_name=self.repo.full_name,
+                current_description=self.repo.description,
+                readme_excerpt=readme,
+            )
+            self.signals.finished.emit(suggestion)
+        except CopilotAccessError as exc:
+            self.signals.error.emit(str(exc))
+        except (ConfigError, GitHubClientError) as exc:
+            self.signals.error.emit(str(exc))
+        except Exception as exc:  # noqa: BLE001
+            self.signals.error.emit(f"Unexpected error: {exc}")

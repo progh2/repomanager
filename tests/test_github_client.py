@@ -19,6 +19,7 @@ def _make_gh_repo(
     private: bool = False,
     description: str = "desc",
     archived: bool = False,
+    has_pages: bool = False,
 ) -> MagicMock:
     repo = MagicMock()
     repo.owner.login = owner
@@ -27,6 +28,8 @@ def _make_gh_repo(
     repo.description = description
     repo.html_url = f"https://github.com/{owner}/{name}"
     repo.archived = archived
+    repo.has_pages = has_pages
+    repo.created_at = datetime(2025, 6, 1, tzinfo=timezone.utc)
     repo.updated_at = datetime(2026, 1, 2, tzinfo=timezone.utc)
     return repo
 
@@ -36,7 +39,7 @@ def test_list_repositories_maps_models(mock_github_cls: MagicMock) -> None:
     gh = mock_github_cls.return_value
     user = gh.get_user.return_value
     user.get_repos.return_value = [
-        _make_gh_repo(owner="alice", name="one", private=True),
+        _make_gh_repo(owner="alice", name="one", private=True, has_pages=True),
         _make_gh_repo(owner="org", name="two", description=""),
     ]
 
@@ -45,7 +48,10 @@ def test_list_repositories_maps_models(mock_github_cls: MagicMock) -> None:
 
     assert len(repos) == 2
     assert repos[0].full_name == "alice/one"
-    assert repos[0].visibility == "Private"
+    assert repos[0].visibility == "비공개"
+    assert repos[0].has_pages is True
+    assert "github.io" in repos[0].pages_url
+    assert repos[0].format_created() == "2025-06-01"
     assert repos[1].owner == "org"
     assert repos[1].short_description == "(설명 없음)"
     user.get_repos.assert_called_once()

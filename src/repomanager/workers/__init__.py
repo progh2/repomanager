@@ -6,6 +6,9 @@ from repomanager.workers.api_worker import (
     BulkActionWorker,
     ListReposWorker,
     LoadResult,
+    SuggestDescriptionWorker,
+    ToggleVisibilityWorker,
+    UpdateDescriptionWorker,
 )
 
 __all__ = [
@@ -14,4 +17,7 @@ __all__ = [
     "BulkActionWorker",
     "ListReposWorker",
     "LoadResult",
+    "SuggestDescriptionWorker",
+    "ToggleVisibilityWorker",
+    "UpdateDescriptionWorker",
 ]

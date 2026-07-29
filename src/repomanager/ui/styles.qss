@@ -93,10 +93,28 @@ QPushButton#secondaryBtn {
     border: 1px solid #9ecfc7;
 }
 
-QFrame#listPane {
+QFrame#listPane, QFrame#detailPane {
     background: #ffffff;
     border: 1px solid #d8e2e8;
     border-radius: 12px;
+}
+
+QPushButton#toggleBtn {
+    min-width: 72px;
+    background: #eef6f4;
+    color: #0d7a6f;
+    border: 1px solid #9ecfc7;
+    font-weight: 600;
+}
+QPushButton#toggleBtn:checked {
+    background: #0d7a6f;
+    color: #ffffff;
+    border: none;
+}
+QPushButton#toggleBtn:!checked {
+    background: #f4f6f8;
+    color: #5c6b76;
+    border: 1px solid #cfd9e0;
 }
 
 QLabel#paneTitle {
