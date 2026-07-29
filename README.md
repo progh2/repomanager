@@ -87,11 +87,15 @@ GITHUB_OAUTH_CLIENT_ID=Iv1...   # 웹 로그인용(선택)
 
 요청 스코프: `repo`, `delete_repo`, `read:org`
 
-### Classic PAT 스코프
+### GitHub CLI로 삭제 권한 추가
 
-- `repo` — private 포함 목록/아카이브
-- `delete_repo` — 삭제
-- `read:org` — 조직 저장소(필요 시)
+`gh` 기본 로그인에는 `delete_repo`가 없는 경우가 많습니다. 삭제가 403이면:
+
+```bash
+gh auth refresh -h github.com -s delete_repo
+```
+
+그다음 앱 Settings에서 **Import from GitHub CLI** 또는 Prefer gh CLI를 켠 뒤 다시 시도하세요.
 
 ## 사용 방법
 

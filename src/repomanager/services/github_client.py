@@ -122,7 +122,50 @@ class GitHubClient:
 
             self._call(_delete)
         except GithubException as exc:
+            if exc.status == 403:
+                raise self._map_delete_forbidden(exc) from exc
             raise self._map_exception(exc) from exc
+
+    def get_oauth_scopes(self) -> list[str] | None:
+        """Return classic OAuth scopes, or None for fine-grained tokens."""
+        try:
+            headers, _data = self._gh._Github__requester.requestJsonAndCheck(  # noqa: SLF001
+                "GET", "/user"
+            )
+        except GithubException as exc:
+            raise self._map_exception(exc) from exc
+        raw = headers.get("x-oauth-scopes") or headers.get("X-OAuth-Scopes")
+        if raw is None or raw == "":
+            return None
+        return [part.strip() for part in str(raw).split(",") if part.strip()]
+
+    def _map_delete_forbidden(self, exc: GithubException) -> GitHubClientError:
+        scopes = None
+        try:
+            scopes = self.get_oauth_scopes()
+        except GitHubClientError:
+            scopes = None
+        detail = ""
+        data = getattr(exc, "data", None)
+        if isinstance(data, dict):
+            detail = str(data.get("message", ""))
+        if scopes is not None and "delete_repo" not in scopes:
+            return GitHubClientError(
+                "Access denied (403): token lacks delete_repo scope "
+                f"(current: {', '.join(scopes) or 'none'}). "
+                "Run: gh auth refresh -h github.com -s delete_repo "
+                "or create a classic PAT with delete_repo, then update Settings.",
+                status=403,
+            )
+        if scopes is None:
+            return GitHubClientError(
+                "Access denied (403) deleting repository. "
+                "Fine-grained PATs need Administration: Read and write. "
+                "Classic/OAuth tokens need the delete_repo scope. "
+                f"GitHub said: {detail or 'forbidden'}",
+                status=403,
+            )
+        return self._map_exception(exc)
 
     def _call(self, fn: Callable[[], T]) -> T:
         """Run ``fn`` with limited retries on rate-limit responses."""

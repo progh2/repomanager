@@ -121,9 +121,12 @@ class SettingsDialog(QDialog):
         gh_layout = QVBoxLayout(gh_box)
         gh_layout.addWidget(self.use_gh)
         gh_layout.addWidget(import_gh_btn)
-        gh_layout.addWidget(
-            QLabel("이미 `gh auth login` 되어 있으면 가장 토큰을 재사용할 수 있습니다.")
+        gh_note = QLabel(
+            "기본 gh 토큰에는 보통 delete_repo가 없습니다.\n"
+            "삭제 권한 추가: gh auth refresh -h github.com -s delete_repo"
         )
+        gh_note.setWordWrap(True)
+        gh_layout.addWidget(gh_note)
 
         # --- Device Flow ---
         self.client_id_edit = QLineEdit()
