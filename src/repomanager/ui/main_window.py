@@ -16,12 +16,14 @@ from PySide6.QtWidgets import (
 )
 
 from repomanager.models.repository import Repository
+from repomanager.services.github_client import RateLimitInfo
 from repomanager.ui.confirm_dialog import ConfirmDialog
 from repomanager.ui.repo_table import RepoTable
 from repomanager.workers.api_worker import (
     BulkActionResult,
     BulkActionWorker,
     ListReposWorker,
+    LoadResult,
 )
 
 
@@ -67,7 +69,8 @@ class MainWindow(QMainWindow):
 
         hint = QLabel(
             "더블클릭하면 브라우저에서 저장소를 엽니다. "
-            "삭제 전 확인 창에서 DELETE를 입력해야 합니다. 삭제는 되돌릴 수 없습니다."
+            "Owner 필터로 개인/조직 저장소를 나눌 수 있습니다. "
+            "삭제 전 확인 창에서 DELETE를 입력해야 합니다."
         )
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #555;")
@@ -82,6 +85,8 @@ class MainWindow(QMainWindow):
 
         status = QStatusBar()
         self.setStatusBar(status)
+        self._rate_label = QLabel("API —")
+        status.addPermanentWidget(self._rate_label)
         self._set_status("Ready. Click Refresh to load repositories.")
 
         self._set_action_buttons_enabled(False)
@@ -97,10 +102,14 @@ class MainWindow(QMainWindow):
         worker.signals.finished.connect(self._on_load_finished)
         self._pool.start(worker)
 
-    def _on_load_finished(self, repos: list) -> None:
-        typed: list[Repository] = list(repos)
-        self.repo_table.set_repositories(typed)
-        self._set_busy(False, status=f"Loaded {len(typed)} repositories.")
+    def _on_load_finished(self, result: object) -> None:
+        assert isinstance(result, LoadResult)
+        self.repo_table.set_repositories(result.repositories)
+        self._update_rate_limit(result.rate_limit)
+        self._set_busy(
+            False,
+            status=f"Loaded {len(result.repositories)} repositories for {result.login}.",
+        )
         self._set_action_buttons_enabled(True)
 
     def _on_load_error(self, message: str) -> None:
@@ -133,6 +142,7 @@ class MainWindow(QMainWindow):
         worker.signals.status.connect(self._set_status)
         worker.signals.progress.connect(self._on_bulk_progress)
         worker.signals.error.connect(self._on_bulk_setup_error)
+        worker.signals.rate_limit.connect(self._update_rate_limit)
         worker.signals.finished.connect(self._on_bulk_finished)
         self._pool.start(worker)
 
@@ -176,13 +186,17 @@ class MainWindow(QMainWindow):
             f"{result.action.capitalize()} done — "
             f"{result.success_count} ok, {result.failure_count} failed."
         )
-        # Refresh list so archived/deleted repos update in the table
         self.load_repositories()
+
+    def _update_rate_limit(self, info: object) -> None:
+        if isinstance(info, RateLimitInfo):
+            self._rate_label.setText(info.summary)
+        else:
+            self._rate_label.setText("API —")
 
     def _set_busy(self, busy: bool, *, status: str | None = None) -> None:
         self._busy = busy
         self.refresh_btn.setEnabled(not busy)
-        # Keep action buttons disabled while busy; re-enable after load/action finishes
         if busy:
             self._set_action_buttons_enabled(False)
         if status is not None:

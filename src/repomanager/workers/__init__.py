@@ -5,6 +5,7 @@ from repomanager.workers.api_worker import (
     BulkActionResult,
     BulkActionWorker,
     ListReposWorker,
+    LoadResult,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "BulkActionResult",
     "BulkActionWorker",
     "ListReposWorker",
+    "LoadResult",
 ]

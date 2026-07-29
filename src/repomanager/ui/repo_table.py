@@ -38,6 +38,10 @@ class RepoTable(QWidget):
         self.search.setPlaceholderText("Search name or description...")
         self.search.textChanged.connect(self._apply_filters)
 
+        self.owner_filter = QComboBox()
+        self.owner_filter.addItem("All owners")
+        self.owner_filter.currentIndexChanged.connect(self._apply_filters)
+
         self.visibility_filter = QComboBox()
         self.visibility_filter.addItems(["All visibility", "Public", "Private"])
         self.visibility_filter.currentIndexChanged.connect(self._apply_filters)
@@ -48,6 +52,7 @@ class RepoTable(QWidget):
 
         filters = QHBoxLayout()
         filters.addWidget(self.search, stretch=1)
+        filters.addWidget(self.owner_filter)
         filters.addWidget(self.visibility_filter)
         filters.addWidget(self.archived_filter)
 
@@ -77,7 +82,19 @@ class RepoTable(QWidget):
 
     def set_repositories(self, repos: list[Repository]) -> None:
         self._all_repos = list(repos)
+        self._rebuild_owner_filter()
         self._apply_filters()
+
+    def _rebuild_owner_filter(self) -> None:
+        current = self.owner_filter.currentText()
+        owners = sorted({repo.owner for repo in self._all_repos}, key=str.lower)
+        self.owner_filter.blockSignals(True)
+        self.owner_filter.clear()
+        self.owner_filter.addItem("All owners")
+        self.owner_filter.addItems(owners)
+        index = self.owner_filter.findText(current)
+        self.owner_filter.setCurrentIndex(index if index >= 0 else 0)
+        self.owner_filter.blockSignals(False)
 
     def selected_repositories(self) -> list[Repository]:
         selected: list[Repository] = []
@@ -107,11 +124,14 @@ class RepoTable(QWidget):
 
     def _apply_filters(self) -> None:
         query = self.search.text().strip().lower()
+        owner = self.owner_filter.currentText()
         visibility = self.visibility_filter.currentText()
         archived_mode = self.archived_filter.currentText()
 
         filtered: list[Repository] = []
         for repo in self._all_repos:
+            if owner != "All owners" and repo.owner != owner:
+                continue
             if visibility == "Public" and repo.private:
                 continue
             if visibility == "Private" and not repo.private:

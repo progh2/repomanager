@@ -8,7 +8,7 @@ from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 
 from repomanager.config import ConfigError, get_github_token
 from repomanager.models.repository import Repository
-from repomanager.services.github_client import GitHubClient, GitHubClientError
+from repomanager.services.github_client import GitHubClient, GitHubClientError, RateLimitInfo
 
 
 @dataclass
@@ -32,8 +32,15 @@ class BulkActionResult:
         return len(self.failed)
 
 
+@dataclass
+class LoadResult:
+    repositories: list[Repository]
+    login: str
+    rate_limit: RateLimitInfo | None = None
+
+
 class ListSignals(QObject):
-    finished = Signal(list)  # list[Repository]
+    finished = Signal(object)  # LoadResult
     error = Signal(str)
     status = Signal(str)
 
@@ -43,6 +50,7 @@ class BulkSignals(QObject):
     finished = Signal(object)  # BulkActionResult
     error = Signal(str)  # fatal setup errors (token etc.)
     status = Signal(str)
+    rate_limit = Signal(object)  # RateLimitInfo | None
 
 
 class ListReposWorker(QRunnable):
@@ -60,8 +68,15 @@ class ListReposWorker(QRunnable):
             login = client.verify()
             self.signals.status.emit(f"Loading repositories for {login}...")
             repos: list[Repository] = client.list_repositories()
+            rate = None
+            try:
+                rate = client.get_rate_limit()
+            except GitHubClientError:
+                rate = None
             self.signals.status.emit(f"Loaded {len(repos)} repositories.")
-            self.signals.finished.emit(repos)
+            self.signals.finished.emit(
+                LoadResult(repositories=repos, login=login, rate_limit=rate)
+            )
         except (ConfigError, GitHubClientError) as exc:
             self.signals.error.emit(str(exc))
         except Exception as exc:  # noqa: BLE001 — surface unexpected errors in UI
@@ -93,7 +108,9 @@ class BulkActionWorker(QRunnable):
         total = len(self.repositories)
         for index, repo in enumerate(self.repositories, start=1):
             self.signals.progress.emit(index, total, repo.full_name)
-            self.signals.status.emit(f"{self.action.capitalize()} {repo.full_name} ({index}/{total})")
+            self.signals.status.emit(
+                f"{self.action.capitalize()} {repo.full_name} ({index}/{total})"
+            )
             try:
                 if self.action == "archive":
                     if repo.archived:
@@ -111,6 +128,13 @@ class BulkActionWorker(QRunnable):
             except GitHubClientError as exc:
                 result.failed.append(ActionFailure(repo.full_name, str(exc)))
             except Exception as exc:  # noqa: BLE001
-                result.failed.append(ActionFailure(repo.full_name, f"Unexpected error: {exc}"))
+                result.failed.append(
+                    ActionFailure(repo.full_name, f"Unexpected error: {exc}")
+                )
+
+        try:
+            self.signals.rate_limit.emit(client.get_rate_limit())
+        except GitHubClientError:
+            self.signals.rate_limit.emit(None)
 
         self.signals.finished.emit(result)
