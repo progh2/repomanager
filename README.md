@@ -1,50 +1,64 @@
 # RepoManager
 
-수업·실습 후 남는 GitHub 저장소를 GUI에서 골라 **아카이브**하거나 **삭제**하는 데스크톱 앱입니다.  
+수업·실습 후 남는 GitHub 저장소를 GUI에서 골라 **백업·아카이브·이름 변경·삭제**하는 데스크톱 앱입니다.  
 Windows, macOS, Linux에서 동작합니다 (PySide6).
 
 ![Screenshot](./screenshot.png)
 
+프로젝트: https://github.com/progh2/repomanager
+
 ## 기능
 
-- 전체 UI 다국어 지원 (한국어 / English / 日本語, 시스템 기본)
-- 설정 메뉴에서 PAT / GitHub CLI / 웹 로그인(Device Flow)
-- 토큰은 OS 자격 증명 저장소(keyring)에 안전하게 저장
-- 활성 / 아카이브 이중 목록과 → ← 이동
-- 생성일·업데이트일, 설명 편집, **이름 변경**(RENAME 확인), 공개/비공개 토글, GitHub Pages 링크
-- **ZIP 백업**: 모든 브랜치(git mirror) + 이슈·마일스톤 JSON (삭제 전 백업용)
-- AI 추천 설명 (GitHub Models / Copilot 권한 필요, UI 언어로 생성)
-- 인증된 계정의 저장소 목록 불러오기 (owner / organization / collaborator)
-- **Public / Private**, 설명(description), 이름·소유자, 업데이트 시각 표시
-- 검색·**Owner**·가시성 필터, 정렬(이름 / 업데이트순 / 생성순), 다중 선택
-- 행 더블클릭 시 브라우저에서 GitHub 페이지 열기
-- 선택 저장소 **일괄 Archive / Delete**
-- 실행 전 확인 창(이름 + 설명 + 경고, 삭제는 `DELETE` 입력)
-- API rate limit 표시, rate limit 시 제한적 재시도
-- API 호출은 백그라운드 스레드로 처리 (UI 멈춤 방지)
+### 목록·필터
+- 활성 / 아카이브 **이중 목록**과 → ← 이동
+- 검색, Owner, 공개범위, **Pages**, **Fork**, 정렬(이름 / 업데이트 / 생성)
+- 생성일·업데이트일, Public/Private, 설명, Pages·Fork 아이콘
+- 더블클릭 또는 버튼으로 GitHub / Pages 열기
+- 로딩 스피너 오버레이, 시작 시 캐시 목록 즉시 표시 후 백그라운드 새로고침
+- 창 크기·필터·정렬 상태 기억
+
+### 편집·정리
+- 설명 편집, **AI 추천 설명**(GitHub Models / Copilot 권한 시, UI 언어로 생성)
+- 공개/비공개 토글
+- **이름 변경** — URL·remote·Pages 등이 깨질 수 있다는 경고 + `RENAME` 입력 확인
+- 선택 저장소 일괄 아카이브 / 활성 복원 / 삭제
+- 삭제·이름 변경 전 확인 창 (`DELETE` / `RENAME` 입력)
+- 삭제 전 **CSV 내보내기**, **ZIP 백업**
+
+### ZIP 백업 (삭제 전 권장)
+- `git clone --mirror`로 **모든 브랜치·태그** 포함
+- Issues / Pull requests / Milestones를 JSON으로 함께 저장
+- 상세 패널, 상단 **ZIP 백업**, 삭제 확인 창에서 실행
+- 로컬에 Git이 없으면 메타데이터만 저장하고 안내
+
+### 인증·설정·UX
+- PAT / GitHub CLI / 웹 로그인(OAuth Device Flow)
+- 토큰은 OS 자격 증명 저장소(**keyring**)에 저장
+- 다국어 UI: 한국어 / English / 日本語 (시스템 기본)
+- 라이트 / 다크 테마
+- 단축키: `F5`·`Ctrl+R` 새로고침, `Delete` 삭제 확인
+- API rate limit 표시, 백그라운드 워커로 UI 멈춤 방지
 
 ## 요구 사항
 
 - Python 3.11+
-- GitHub Personal Access Token
+- GitHub 토큰 (PAT 또는 `gh` / OAuth)
+- ZIP 전체 브랜치 백업 시: **Git**이 PATH에 있어야 함
 
 ## 빠른 실행 (권장)
 
-저장소를 받은 뒤 실행 스크립트 하나로 시작할 수 있습니다.  
-첫 실행 시 자동으로 가상환경(`.venv`)을 만들고 의존성을 설치합니다.
-
 ```bash
-# Windows — 더블클릭 또는 터미널에서
+# Windows — 더블클릭 또는 터미널
 run.bat
 
 # macOS / Linux
 ./run.sh
 ```
 
-- 의존성만 다시 설치하려면: `run.bat --update` / `./run.sh --update`
-- Python 3.11 이상이 설치되어 있어야 합니다.
+첫 실행 시 `.venv` 생성과 의존성 설치를 자동으로 합니다.  
+의존성만 다시 설치: `run.bat --update` / `./run.sh --update`
 
-## 수동 설치
+## 수동 설치·실행
 
 ```bash
 python -m venv .venv
@@ -56,105 +70,113 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-# 또는 개발 설치
-pip install -e ".[dev]"
+# 또는: pip install -e ".[dev]"
 
-copy .env.example .env   # Windows
-# cp .env.example .env   # macOS / Linux
-```
-
-`.env`에 토큰을 넣습니다.
-
-```env
-GITHUB_TOKEN=ghp_your_token_here
-```
-
-## 실행
-
-```bash
 python -m repomanager
 ```
 
-## GitHub 인증
-
-다음 중 하나로 인증합니다 (우선순위: 환경변수 → Settings 저장 토큰 → `gh`).
-
-### 1) 설정 메뉴 (권장)
-
-앱 실행 후 **File → Settings** (`Ctrl+,`) 또는 **Account → GitHub credentials**.
-
-- **Personal Access Token** 붙여넣기 후 Save
-- 또는 **Import from GitHub CLI** (`gh auth login` 되어 있을 때)
-- 또는 **Sign in with GitHub (browser)** — OAuth Device Flow (아래)
-
-토큰은 OS 자격 증명 저장소(Windows Credential Manager / macOS Keychain / Linux Secret Service)에
-`keyring`으로 안전하게 저장됩니다. keyring을 쓸 수 없는 환경에서만 Qt `QSettings`로 대체됩니다.
-
-### 2) `.env` / 환경변수
+선택적으로 `.env`에 토큰을 둘 수 있습니다 (`copy` / `cp .env.example .env`).
 
 ```env
 GITHUB_TOKEN=ghp_your_token_here
 GITHUB_OAUTH_CLIENT_ID=Iv1...   # 웹 로그인용(선택)
 ```
 
-### 3) 웹 로그인 (OAuth Device Flow)
+## GitHub 인증
 
-브라우저 로그인은 가능하지만, **GitHub OAuth App의 Client ID**가 필요합니다.  
-(일반 웹사이트처럼 “아무 앱이나” 바로 로그인하는 방식은 GitHub가 허용하지 않습니다.)
+우선순위: 환경변수(`.env`) → 설정에 저장한 토큰 → GitHub CLI(`gh`).
 
-1. https://github.com/settings/developers → **New OAuth App**
-2. Application name: `RepoManager` (자유)
-3. Homepage URL: `https://github.com/progh2/repomanager`
-4. Authorization callback URL: `http://127.0.0.1`
-5. 생성 후 **Device Flow** 활성화, **Client ID**만 Settings에 입력  
-   (**Client Secret은 데스크톱 앱에 넣지 마세요**)
-6. Settings에서 **Sign in with GitHub** → 브라우저에 표시된 코드 입력
+### 1) 설정 메뉴 (권장)
 
-요청 스코프: `repo`, `delete_repo`, `read:org`
+**파일 → 설정** (`Ctrl+,`)
 
-### GitHub CLI로 삭제 권한 추가
+- Personal Access Token 붙여넣기 후 저장
+- 또는 **GitHub CLI에서 가져오기**
+- 또는 **GitHub 웹으로 로그인** (OAuth Device Flow)
 
-`gh` 기본 로그인에는 `delete_repo`가 없는 경우가 많습니다. 삭제가 403이면:
+토큰은 Windows Credential Manager / macOS Keychain / Linux Secret Service에 `keyring`으로 저장됩니다.  
+keyring을 쓸 수 없으면 Qt `QSettings`로 대체됩니다.
+
+### 2) Classic PAT 권한
+
+| 작업 | 필요 권한 |
+|------|-----------|
+| 목록·아카이브·설명·이름 변경 | `repo` |
+| 삭제 | `delete_repo` (별도) |
+| 조직 저장소 | `read:org` (필요 시) |
+
+Fine-grained PAT는 대상 저장소에 **Administration: Read and write**(삭제·이름 변경 등)가 필요할 수 있습니다.
+
+### 3) GitHub CLI로 삭제 권한
 
 ```bash
 gh auth refresh -h github.com -s delete_repo
 ```
 
-그다음 앱 Settings에서 **Import from GitHub CLI** 또는 Prefer gh CLI를 켠 뒤 다시 시도하세요.
+이후 설정에서 CLI 토큰을 다시 가져오세요. 삭제가 403이면 **도움말 → 삭제 권한 안내**를 참고하세요.
+
+### 4) 웹 로그인 (OAuth Device Flow)
+
+1. https://github.com/settings/developers → **New OAuth App**
+2. Homepage: `https://github.com/progh2/repomanager`, Callback: `http://127.0.0.1`
+3. Device Flow 활성화 후 **Client ID만** 설정에 입력 (Client Secret은 넣지 마세요)
+4. 설정에서 웹 로그인 → 브라우저에 코드 입력
+
+요청 스코프: `repo`, `delete_repo`, `read:org`
 
 ## 사용 방법
 
-1. 앱 실행 → 토큰이 없으면 설정 안내
-2. **파일 → 설정**에서 인증 구성 후 저장
-3. **새로고침**으로 저장소 목록 로드
-4. **왼쪽(활성)** / **오른쪽(아카이브)** 목록에서 대상 선택
-5. 가운데 **→** 로 아카이브, **←** 로 활성 복원
-6. **GitHub에서 열기**(또는 더블클릭)로 페이지 확인
-7. 삭제는 선택 후 **선택 삭제** (DELETE 입력, `delete_repo` 권한 필요)
+1. 앱 실행 → 토큰이 없으면 설정 안내 (캐시가 있으면 목록이 바로 표시됨)
+2. **파일 → 설정**에서 인증·언어·테마 구성
+3. **새로고침** (`F5`)으로 최신 목록 로드
+4. 필터·정렬로 대상 좁히기 (예: Fork만, Pages 있음, 오래된 업데이트순)
+5. 왼쪽(활성) / 오른쪽(아카이브)에서 선택 → → / ← 로 이동
+6. 아래 패널에서 설명·공개여부·이름 변경·Pages·**ZIP 백업**
+7. 삭제 전: **ZIP 백업** 또는 CSV 내보내기 → `DELETE` 입력 후 삭제
 
-삭제가 403이면 **도움말 → 삭제 권한 안내** 또는 설정 상단 안내를 따르세요.
+## ZIP 백업 구조
+
+```text
+owner-repo-backup-YYYYMMDD-HHMMSS.zip
+├── README.md
+├── repository.git/          # bare mirror (전체 브랜치·태그)
+│   └── ...
+└── metadata/
+    ├── repository.json
+    ├── issues.json          # issues + PRs
+    ├── milestones.json
+    └── README.md
+```
+
+복원 예:
+
+```bash
+git clone repository.git restored-folder
+```
 
 ## 주의
 
-- **삭제는 되돌릴 수 없습니다.** 삭제 확인 창에서 CSV 내보내기 또는 **ZIP 백업**을 먼저 하세요.
-- ZIP 백업에는 `git clone --mirror`로 만든 전체 브랜치/태그 미러와 이슈·마일스톤 JSON이 포함됩니다. (로컬에 Git이 필요합니다)
-- 아카이브는 읽기 전용으로 남기며, 나중에 GitHub에서 unarchive할 수 있습니다.
+- **삭제는 되돌릴 수 없습니다.** 삭제 전에 ZIP 백업을 권장합니다.
+- 이름 변경 시 GitHub URL, git remote, Pages, 북마크, 다른 저장소의 참조가 깨질 수 있습니다.
+- 아카이브는 읽기 전용이며 나중에 활성으로 되돌릴 수 있습니다.
+- 이 프로그램을 사용해 발생한 결과는 사용자 책임입니다. (앱 **도움말 → 정보**)
 
 ## 배포판 / 패키징
 
-GitHub Actions CI·자동 릴리스 빌드는 사용하지 않습니다.
-기존 바이너리는 [Releases](https://github.com/progh2/repomanager/releases)에 있을 수 있으며,
-새 배포판이 필요하면 아래처럼 로컬에서 PyInstaller로 만드세요.
+**GitHub Actions CI·자동 릴리스 빌드는 사용하지 않습니다.**  
+과거 바이너리는 [Releases](https://github.com/progh2/repomanager/releases)에 남아 있을 수 있습니다.  
+새 배포판은 로컬에서 PyInstaller로 만드세요.
 
 ```bash
 pip install pyinstaller
 
-# Windows / Linux (onedir 권장 — Qt 플러그인 경로 이슈가 적음)
+# Windows
 pyinstaller --noconfirm --windowed --name RepoManager ^
   --paths src ^
   --collect-all PySide6 ^
   --add-data "src/repomanager/ui/styles.qss;repomanager/ui" ^
   --add-data "src/repomanager/ui/assets;repomanager/ui/assets" ^
+  --icon src/repomanager/ui/assets/icon.png ^
   src/repomanager/__main__.py
 
 # macOS / Linux
@@ -166,14 +188,8 @@ pyinstaller --noconfirm --windowed --name RepoManager \
   src/repomanager/__main__.py
 ```
 
-결과물은 `dist/RepoManager/` 에 생성됩니다.
-
-참고:
-
-- `.env`는 실행 파일 옆에 두거나, 실행 전 환경 변수 `GITHUB_TOKEN`을 설정하세요.
 - 토큰을 바이너리에 넣지 마세요.
-- 코드 서명(macOS Gatekeeper, Windows SmartScreen)은 배포 환경에 맞게 별도 설정이 필요합니다.
-- 문제가 있으면 `--onedir`을 유지하고, 필요 시 `--hidden-import=PySide6.QtWidgets` 를 추가하세요.
+- Windows SmartScreen / macOS Gatekeeper는 미서명 실행 파일에 경고할 수 있습니다.
 
 ## 테스트
 
@@ -181,22 +197,35 @@ pyinstaller --noconfirm --windowed --name RepoManager \
 pytest
 ```
 
-## 프로젝트 문서
+## 문서·트래킹
 
-- [PRD.md](PRD.md) — 제품 요구사항, 범위, 마일스톤
-- GitHub **Milestones / Issues** — 단계별 과업
+- [PRD.md](PRD.md) — 제품 요구사항·범위·마일스톤
+- GitHub **Milestones / Issues** — 단계별 과업 (M1–M8)
 
 ## 개발 구조
 
 ```text
 src/repomanager/
-  app.py                 # QApplication 진입
-  config.py              # 토큰/설정
-  models/repository.py   # Repo DTO
-  services/github_client.py
-  services/repo_backup.py
+  app.py
+  config.py                 # 토큰 / keyring / QSettings
+  i18n.py                   # ko / en / ja
+  models/repository.py
+  services/
+    github_client.py
+    repo_backup.py          # ZIP mirror + issues/milestones
+    repo_cache.py
+    oauth_device.py
+    ai_assist.py
   workers/api_worker.py
-  ui/main_window.py
+  ui/
+    main_window.py
+    dual_repo_lists.py
+    repo_detail_panel.py
+    confirm_dialog.py
+    rename_dialog.py
+    settings_dialog.py
+    loading_overlay.py
+    styles.qss / styles_dark.qss
 ```
 
 ## 라이선스
