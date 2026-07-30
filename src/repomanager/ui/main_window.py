@@ -33,12 +33,14 @@ from repomanager.ui.confirm_dialog import ConfirmDialog
 from repomanager.ui.dual_repo_lists import DualRepoLists
 from repomanager.ui.loading_overlay import LoadingOverlay
 from repomanager.ui.repo_detail_panel import RepoDetailPanel
+from repomanager.ui.rename_dialog import RenameDialog
 from repomanager.ui.settings_dialog import SettingsDialog
 from repomanager.workers.api_worker import (
     BulkActionResult,
     BulkActionWorker,
     ListReposWorker,
     LoadResult,
+    RenameRepositoryWorker,
     SuggestDescriptionWorker,
     ToggleVisibilityWorker,
     UpdateDescriptionWorker,
@@ -94,6 +96,8 @@ class MainWindow(QMainWindow):
         self.detail.save_description_requested.connect(self._save_description)
         self.detail.toggle_visibility_requested.connect(self._toggle_visibility)
         self.detail.suggest_description_requested.connect(self._suggest_description)
+        self.detail.rename_requested.connect(self._rename_repository)
+        self._rename_from: str | None = None
 
         self.refresh_btn = QPushButton()
         self.refresh_btn.setObjectName("primaryBtn")
@@ -351,6 +355,45 @@ class MainWindow(QMainWindow):
         worker.signals.error.connect(self._on_suggest_error)
         worker.signals.finished.connect(self._on_suggest_finished)
         self._pool.start(worker)
+
+    def _rename_repository(self, repo: object) -> None:
+        if self._busy or not isinstance(repo, Repository):
+            return
+        if repo.archived:
+            return
+        dialog = RenameDialog(repo, parent=self)
+        if dialog.exec() != RenameDialog.DialogCode.Accepted:
+            return
+        new_name = dialog.new_repository_name()
+        self._rename_from = repo.full_name
+        self._set_busy(
+            True,
+            status=tr("status.renaming", old=repo.full_name, new=new_name),
+        )
+        worker = RenameRepositoryWorker(repo, new_name)
+        worker.signals.status.connect(self._set_status)
+        worker.signals.error.connect(self._on_rename_error)
+        worker.signals.finished.connect(self._on_repo_renamed)
+        self._pool.start(worker)
+
+    def _on_repo_renamed(self, repo: object) -> None:
+        assert isinstance(repo, Repository)
+        old = self._rename_from
+        self._rename_from = None
+        self.repo_lists.upsert_repository(repo, replace_full_name=old)
+        self.detail.set_repository(repo)
+        old_label = old or repo.full_name
+        self._set_busy(
+            False,
+            status=tr("status.renamed", old=old_label, new=repo.full_name),
+        )
+        self._set_action_buttons_enabled(True)
+
+    def _on_rename_error(self, message: str) -> None:
+        self._rename_from = None
+        self._set_busy(False, status=tr("status.edit_failed"))
+        self._set_action_buttons_enabled(True)
+        QMessageBox.critical(self, tr("err.edit_title"), message)
 
     def _on_repo_updated(self, repo: object) -> None:
         assert isinstance(repo, Repository)

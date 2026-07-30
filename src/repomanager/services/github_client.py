@@ -147,6 +147,22 @@ class GitHubClient:
         except GithubException as exc:
             raise self._map_exception(exc) from exc
 
+    def rename_repository(self, owner: str, name: str, new_name: str) -> Repository:
+        new_name = new_name.strip()
+        if not new_name:
+            raise GitHubClientError("Repository name cannot be empty.")
+        if new_name == name:
+            raise GitHubClientError("New name is the same as the current name.")
+        try:
+            def _edit() -> Repository:
+                repo = self._gh.get_repo(f"{owner}/{name}")
+                repo.edit(name=new_name)
+                return self._to_model(repo)
+
+            return self._call(_edit)
+        except GithubException as exc:
+            raise self._map_exception(exc) from exc
+
     def set_private(self, owner: str, name: str, private: bool) -> Repository:
         try:
             def _edit() -> Repository:

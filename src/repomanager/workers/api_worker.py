@@ -196,6 +196,30 @@ class ToggleVisibilityWorker(QRunnable):
             self.signals.error.emit(f"Unexpected error: {exc}")
 
 
+class RenameRepositoryWorker(QRunnable):
+    def __init__(self, repo: Repository, new_name: str) -> None:
+        super().__init__()
+        self.repo = repo
+        self.new_name = new_name
+        self.signals = RepoEditSignals()
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            client = GitHubClient(get_github_token())
+            self.signals.status.emit(
+                tr("status.renaming", old=self.repo.full_name, new=self.new_name)
+            )
+            updated = client.rename_repository(
+                self.repo.owner, self.repo.name, self.new_name
+            )
+            self.signals.finished.emit(updated)
+        except (ConfigError, GitHubClientError) as exc:
+            self.signals.error.emit(str(exc))
+        except Exception as exc:  # noqa: BLE001
+            self.signals.error.emit(f"Unexpected error: {exc}")
+
+
 class SuggestSignals(QObject):
     finished = Signal(str)
     error = Signal(str)

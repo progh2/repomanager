@@ -123,6 +123,47 @@ STRINGS: dict[str, dict[str, str]] = {
         "ja": "GitHub Models / Copilot 権限があれば README などから説明を提案します。",
     },
     "detail.save": {"ko": "설명 저장", "en": "Save description", "ja": "説明を保存"},
+    "detail.rename": {"ko": "이름 변경...", "en": "Rename...", "ja": "名前変更..."},
+    "detail.rename_tip": {
+        "ko": "저장소 이름을 바꿉니다. URL과 링크가 모두 변경됩니다.",
+        "en": "Rename this repository. All URLs and links will change.",
+        "ja": "リポジトリ名を変更します。URLとリンクがすべて変わります。",
+    },
+
+    "rename.title": {"ko": "저장소 이름 변경", "en": "Rename repository", "ja": "リポジトリ名の変更"},
+    "rename.warning": {
+        "ko": "{name} 저장소의 이름을 변경합니다.\n이 작업은 GitHub URL·git remote·Pages·북마크·다른 저장소의 참조를 모두 깨뜨릴 수 있습니다.",
+        "en": "You are about to rename {name}.\nThis breaks GitHub URLs, git remotes, Pages, bookmarks, and references from other repositories.",
+        "ja": "{name} の名前を変更します。\nGitHub URL・git remote・Pages・ブックマーク・他リポジトリからの参照が壊れる可能性があります。",
+    },
+    "rename.links_note": {
+        "ko": "GitHub는 일정 기간 리다이렉트를 제공할 수 있지만, 의존하지 마세요. 로컬 클론의 remote URL도 직접 업데이트해야 합니다.",
+        "en": "GitHub may redirect for a while, but do not rely on it. Update local clone remotes yourself.",
+        "ja": "GitHub はしばらくリダイレクトする場合がありますが、当てにしないでください。ローカル clone の remote も更新が必要です。",
+    },
+    "rename.current": {"ko": "현재 이름", "en": "Current name", "ja": "現在の名前"},
+    "rename.new": {"ko": "새 이름", "en": "New name", "ja": "新しい名前"},
+    "rename.new_placeholder": {
+        "ko": "새 저장소 이름 (문자, 숫자, ., -, _)",
+        "en": "New repository name (letters, digits, ., -, _)",
+        "ja": "新しいリポジトリ名 (英数字, ., -, _)",
+    },
+    "rename.confirm_hint": {
+        "ko": "계속하려면 아래에 <b>{word}</b> 를 입력하세요.",
+        "en": "Type <b>{word}</b> below to continue.",
+        "ja": "続行するには下に <b>{word}</b> を入力してください。",
+    },
+    "rename.accept": {"ko": "이름 변경", "en": "Rename", "ja": "名前を変更"},
+    "status.renaming": {
+        "ko": "이름 변경 중: {old} → {new}",
+        "en": "Renaming: {old} → {new}",
+        "ja": "名前変更中: {old} → {new}",
+    },
+    "status.renamed": {
+        "ko": "{old} → {new} 으로 이름을 변경했습니다.",
+        "en": "Renamed {old} → {new}.",
+        "ja": "{old} → {new} に名前を変更しました。",
+    },
 
     "settings.title": {"ko": "설정", "en": "Settings", "ja": "設定"},
     "settings.language": {"ko": "언어", "en": "Language", "ja": "言語"},

@@ -11,7 +11,7 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 - 설정 메뉴에서 PAT / GitHub CLI / 웹 로그인(Device Flow)
 - 토큰은 OS 자격 증명 저장소(keyring)에 안전하게 저장
 - 활성 / 아카이브 이중 목록과 → ← 이동
-- 생성일·업데이트일, 설명 편집, 공개/비공개 토글, GitHub Pages 링크
+- 생성일·업데이트일, 설명 편집, **이름 변경**(RENAME 확인), 공개/비공개 토글, GitHub Pages 링크
 - AI 추천 설명 (GitHub Models / Copilot 권한 필요, UI 언어로 생성)
 - 인증된 계정의 저장소 목록 불러오기 (owner / organization / collaborator)
 - **Public / Private**, 설명(description), 이름·소유자, 업데이트 시각 표시

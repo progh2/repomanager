@@ -228,11 +228,12 @@ class DualRepoLists(QWidget):
         self._rebuild_owner_filter()
         self._rebuild_lists()
 
-    def upsert_repository(self, repo: Repository) -> None:
+    def upsert_repository(self, repo: Repository, *, replace_full_name: str | None = None) -> None:
+        target = replace_full_name or repo.full_name
         updated: list[Repository] = []
         found = False
         for existing in self._all_repos:
-            if existing.full_name == repo.full_name:
+            if existing.full_name == target:
                 updated.append(repo)
                 found = True
             else:

@@ -102,3 +102,31 @@ def test_get_rate_limit(mock_github_cls: MagicMock) -> None:
     assert info.remaining == 42
     assert info.limit == 5000
     assert "API 42/5000" in info.summary
+
+
+@patch("repomanager.services.github_client.Github")
+def test_rename_repository(mock_github_cls: MagicMock) -> None:
+    gh = mock_github_cls.return_value
+    repo = _make_gh_repo(owner="alice", name="old-name")
+
+    def _edit(**kwargs):
+        if "name" in kwargs:
+            repo.name = kwargs["name"]
+            repo.html_url = f"https://github.com/alice/{kwargs['name']}"
+
+    repo.edit.side_effect = _edit
+    gh.get_repo.return_value = repo
+
+    client = GitHubClient("token")
+    updated = client.rename_repository("alice", "old-name", "new-name")
+
+    repo.edit.assert_called_once_with(name="new-name")
+    assert updated.name == "new-name"
+    assert updated.full_name == "alice/new-name"
+
+
+@patch("repomanager.services.github_client.Github")
+def test_rename_repository_rejects_same_name(mock_github_cls: MagicMock) -> None:
+    client = GitHubClient("token")
+    with pytest.raises(GitHubClientError):
+        client.rename_repository("alice", "demo", "demo")
