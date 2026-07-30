@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QThreadPool, QTimer
 from PySide6.QtGui import QAction, QGuiApplication, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -36,6 +37,7 @@ from repomanager.ui.repo_detail_panel import RepoDetailPanel
 from repomanager.ui.rename_dialog import RenameDialog
 from repomanager.ui.settings_dialog import SettingsDialog
 from repomanager.workers.api_worker import (
+    BackupRepositoriesWorker,
     BulkActionResult,
     BulkActionWorker,
     ListReposWorker,
@@ -97,7 +99,9 @@ class MainWindow(QMainWindow):
         self.detail.toggle_visibility_requested.connect(self._toggle_visibility)
         self.detail.suggest_description_requested.connect(self._suggest_description)
         self.detail.rename_requested.connect(self._rename_repository)
+        self.detail.backup_requested.connect(self._backup_one)
         self._rename_from: str | None = None
+        self._backup_dir: str | None = None
 
         self.refresh_btn = QPushButton()
         self.refresh_btn.setObjectName("primaryBtn")
@@ -106,6 +110,8 @@ class MainWindow(QMainWindow):
         self.select_all_btn.clicked.connect(self.repo_lists.select_all_visible)
         self.clear_btn = QPushButton()
         self.clear_btn.clicked.connect(self.repo_lists.clear_selection)
+        self.backup_btn = QPushButton()
+        self.backup_btn.clicked.connect(self._backup_selected)
         self.delete_btn = QPushButton()
         self.delete_btn.setObjectName("dangerBtn")
         self.delete_btn.clicked.connect(lambda: self._confirm_action("delete"))
@@ -117,6 +123,7 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(self.refresh_btn)
         toolbar.addWidget(self.select_all_btn)
         toolbar.addWidget(self.clear_btn)
+        toolbar.addWidget(self.backup_btn)
         toolbar.addStretch(1)
         toolbar.addWidget(self.selection_label)
         toolbar.addWidget(self.delete_btn)
@@ -194,6 +201,8 @@ class MainWindow(QMainWindow):
         self.refresh_btn.setText(tr("btn.refresh"))
         self.select_all_btn.setText(tr("btn.select_all"))
         self.clear_btn.setText(tr("btn.clear"))
+        self.backup_btn.setText(tr("detail.backup"))
+        self.backup_btn.setToolTip(tr("detail.backup_tip"))
         self.delete_btn.setText(tr("btn.delete"))
         self.delete_btn.setToolTip(tr("help.delete_scope"))
         self.hint.setText(tr("hint.main"))
@@ -433,9 +442,90 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, tr("no_selection_title"), tr("no_selection"))
             return
         dialog = ConfirmDialog(action=action, repositories=selected, parent=self)
+        if action == "delete":
+            dialog.backup_requested.connect(self._backup_repositories)
         if dialog.exec() != ConfirmDialog.DialogCode.Accepted:
             return
         self._run_bulk_action(action, selected)
+
+    def _backup_one(self, repo: object) -> None:
+        if isinstance(repo, Repository):
+            self._backup_repositories([repo])
+
+    def _backup_selected(self) -> None:
+        selected = self.repo_lists.selected_repositories()
+        if not selected:
+            QMessageBox.information(self, tr("no_selection_title"), tr("no_selection"))
+            return
+        self._backup_repositories(selected)
+
+    def _backup_repositories(self, repositories: list) -> None:
+        if self._busy:
+            return
+        repos = [r for r in repositories if isinstance(r, Repository)]
+        if not repos:
+            return
+        directory = QFileDialog.getExistingDirectory(self, tr("backup.choose_dir"))
+        if not directory:
+            return
+        self._backup_dir = directory
+        self._set_busy(True, status=tr("status.backing_up", name=repos[0].full_name, current=1, total=len(repos)))
+        self.progress.setVisible(True)
+        self.progress.setMaximum(len(repos))
+        self.progress.setValue(0)
+        self._loading.start(tr("status.backing_up", name=repos[0].full_name, current=1, total=len(repos)))
+
+        worker = BackupRepositoriesWorker(repos, directory)
+        worker.signals.status.connect(self._set_status)
+        worker.signals.status.connect(self._loading.set_text)
+        worker.signals.progress.connect(self._on_backup_progress)
+        worker.signals.error.connect(self._on_backup_setup_error)
+        worker.signals.finished.connect(self._on_backup_finished)
+        self._pool.start(worker)
+
+    def _on_backup_progress(self, current: int, total: int, full_name: str) -> None:
+        self.progress.setMaximum(total)
+        self.progress.setValue(current)
+        msg = tr("status.backing_up", name=full_name, current=current, total=total)
+        self._set_status(msg)
+        self._loading.set_text(msg)
+
+    def _on_backup_setup_error(self, message: str) -> None:
+        self.progress.setVisible(False)
+        self._loading.stop()
+        self._set_busy(False, status=tr("status.action_failed"))
+        self._set_action_buttons_enabled(True)
+        QMessageBox.critical(self, tr("backup.failed_title"), message)
+
+    def _on_backup_finished(self, results: object) -> None:
+        self.progress.setVisible(False)
+        self._loading.stop()
+        self._set_busy(False)
+        self._set_action_buttons_enabled(True)
+        assert isinstance(results, list)
+        ok = [r for r in results if r[1] and not r[2]]
+        fail = [r for r in results if r[2]]
+        lines = [
+            tr(
+                "backup.summary",
+                ok=len(ok),
+                fail=len(fail),
+                dir=self._backup_dir or "",
+            )
+        ]
+        if fail:
+            lines.append("")
+            lines.append(tr("backup.failed_detail"))
+            for full_name, _path, err in fail:
+                lines.append(f"- {full_name}: {err}")
+        summary = "\n".join(lines)
+        if fail and ok:
+            QMessageBox.warning(self, tr("backup.partial_title"), summary)
+        elif fail:
+            QMessageBox.critical(self, tr("backup.failed_title"), summary)
+        else:
+            QMessageBox.information(self, tr("backup.done_title"), summary)
+        self._set_status(tr("status.backup_done", ok=len(ok), fail=len(fail)))
 
     def _run_bulk_action(self, action: str, repositories: list[Repository]) -> None:
         self._set_busy(True, status=tr("status.action_start", action=action_label(action)))
@@ -523,6 +613,7 @@ class MainWindow(QMainWindow):
     def _set_action_buttons_enabled(self, enabled: bool) -> None:
         self.select_all_btn.setEnabled(enabled)
         self.clear_btn.setEnabled(enabled)
+        self.backup_btn.setEnabled(enabled)
         self.delete_btn.setEnabled(enabled)
         self.repo_lists.setEnabled(enabled)
         self.detail.setEnabled(enabled)

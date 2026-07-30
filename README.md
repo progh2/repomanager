@@ -12,6 +12,7 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 - 토큰은 OS 자격 증명 저장소(keyring)에 안전하게 저장
 - 활성 / 아카이브 이중 목록과 → ← 이동
 - 생성일·업데이트일, 설명 편집, **이름 변경**(RENAME 확인), 공개/비공개 토글, GitHub Pages 링크
+- **ZIP 백업**: 모든 브랜치(git mirror) + 이슈·마일스톤 JSON (삭제 전 백업용)
 - AI 추천 설명 (GitHub Models / Copilot 권한 필요, UI 언어로 생성)
 - 인증된 계정의 저장소 목록 불러오기 (owner / organization / collaborator)
 - **Public / Private**, 설명(description), 이름·소유자, 업데이트 시각 표시
@@ -135,25 +136,15 @@ gh auth refresh -h github.com -s delete_repo
 
 ## 주의
 
-- **삭제는 되돌릴 수 없습니다.**
+- **삭제는 되돌릴 수 없습니다.** 삭제 확인 창에서 CSV 내보내기 또는 **ZIP 백업**을 먼저 하세요.
+- ZIP 백업에는 `git clone --mirror`로 만든 전체 브랜치/태그 미러와 이슈·마일스톤 JSON이 포함됩니다. (로컬에 Git이 필요합니다)
 - 아카이브는 읽기 전용으로 남기며, 나중에 GitHub에서 unarchive할 수 있습니다.
 
-## 배포판 다운로드 (GitHub Releases)
+## 배포판 / 패키징
 
-`v*` 태그를 푸시하면 GitHub Actions가 Windows / macOS / Linux 실행 파일을 자동으로 빌드해
-[Releases](https://github.com/progh2/repomanager/releases)에 첨부합니다.
-Python 설치 없이 받아서 바로 실행할 수 있습니다.
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-푸시할 때마다 CI(pytest)도 자동 실행됩니다.
-
-## 패키징 (PyInstaller, 수동)
-
-개발용 실행이 우선이며, 단일 실행 파일이 필요하면 PyInstaller를 사용할 수 있습니다.
+GitHub Actions CI·자동 릴리스 빌드는 사용하지 않습니다.
+기존 바이너리는 [Releases](https://github.com/progh2/repomanager/releases)에 있을 수 있으며,
+새 배포판이 필요하면 아래처럼 로컬에서 PyInstaller로 만드세요.
 
 ```bash
 pip install pyinstaller
@@ -162,12 +153,16 @@ pip install pyinstaller
 pyinstaller --noconfirm --windowed --name RepoManager ^
   --paths src ^
   --collect-all PySide6 ^
+  --add-data "src/repomanager/ui/styles.qss;repomanager/ui" ^
+  --add-data "src/repomanager/ui/assets;repomanager/ui/assets" ^
   src/repomanager/__main__.py
 
-# macOS
+# macOS / Linux
 pyinstaller --noconfirm --windowed --name RepoManager \
   --paths src \
   --collect-all PySide6 \
+  --add-data "src/repomanager/ui/styles.qss:repomanager/ui" \
+  --add-data "src/repomanager/ui/assets:repomanager/ui/assets" \
   src/repomanager/__main__.py
 ```
 
@@ -199,6 +194,7 @@ src/repomanager/
   config.py              # 토큰/설정
   models/repository.py   # Repo DTO
   services/github_client.py
+  services/repo_backup.py
   workers/api_worker.py
   ui/main_window.py
 ```

@@ -22,6 +22,7 @@ class RepoDetailPanel(QFrame):
     toggle_visibility_requested = Signal(object)
     suggest_description_requested = Signal(object)
     rename_requested = Signal(object)
+    backup_requested = Signal(object)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -51,10 +52,14 @@ class RepoDetailPanel(QFrame):
         self.rename_btn = QPushButton()
         self.rename_btn.clicked.connect(self._on_rename)
 
+        self.backup_btn = QPushButton()
+        self.backup_btn.clicked.connect(self._on_backup)
+
         top = QHBoxLayout()
         top.addWidget(self.title, stretch=1)
         top.addWidget(self.visibility_btn)
         top.addWidget(self.rename_btn)
+        top.addWidget(self.backup_btn)
         top.addWidget(self.open_repo_btn)
         top.addWidget(self.pages_btn)
 
@@ -91,6 +96,8 @@ class RepoDetailPanel(QFrame):
         self.pages_btn.setText(tr("detail.pages_open"))
         self.rename_btn.setText(tr("detail.rename"))
         self.rename_btn.setToolTip(tr("detail.rename_tip"))
+        self.backup_btn.setText(tr("detail.backup"))
+        self.backup_btn.setToolTip(tr("detail.backup_tip"))
         self.desc_label.setText(tr("detail.desc_label"))
         self.desc_edit.setPlaceholderText(tr("detail.desc_placeholder"))
         self.suggest_btn.setText(tr("detail.suggest"))
@@ -107,6 +114,7 @@ class RepoDetailPanel(QFrame):
         self.visibility_btn.setEnabled(enabled)
         self.open_repo_btn.setEnabled(enabled)
         self.rename_btn.setEnabled(enabled and not (repo.archived if repo else True))
+        self.backup_btn.setEnabled(enabled)
 
         if repo is None:
             self.title.setText(tr("detail.select"))
@@ -188,6 +196,11 @@ class RepoDetailPanel(QFrame):
         if self._repo is None:
             return
         self.rename_requested.emit(self._repo)
+
+    def _on_backup(self) -> None:
+        if self._repo is None:
+            return
+        self.backup_requested.emit(self._repo)
 
     def _open_repo(self) -> None:
         if self._repo is not None:

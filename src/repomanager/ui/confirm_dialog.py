@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -24,6 +25,8 @@ DELETE_CONFIRM_WORD = "DELETE"
 
 
 class ConfirmDialog(QDialog):
+    backup_requested = Signal(list)
+
     def __init__(
         self,
         *,
@@ -93,6 +96,10 @@ class ConfirmDialog(QDialog):
                 tr("confirm.export_csv"), QDialogButtonBox.ButtonRole.ActionRole
             )
             export_btn.clicked.connect(self._export_csv)
+            backup_btn = self._buttons.addButton(
+                tr("confirm.backup_zip"), QDialogButtonBox.ButtonRole.ActionRole
+            )
+            backup_btn.clicked.connect(self._request_backup)
         self._accept_btn.setDefault(False)
         self._buttons.accepted.connect(self.accept)
         self._buttons.rejected.connect(self.reject)
@@ -142,6 +149,9 @@ class ConfirmDialog(QDialog):
         QMessageBox.information(
             self, tr("confirm.export_csv"), tr("confirm.export_done", path=path)
         )
+
+    def _request_backup(self) -> None:
+        self.backup_requested.emit(list(self._repositories))
 
     def _update_accept_enabled(self) -> None:
         if self._confirm_input is None:

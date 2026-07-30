@@ -258,3 +258,66 @@ class SuggestDescriptionWorker(QRunnable):
             self.signals.error.emit(str(exc))
         except Exception as exc:  # noqa: BLE001
             self.signals.error.emit(f"Unexpected error: {exc}")
+
+
+class BackupSignals(QObject):
+    progress = Signal(int, int, str)  # current, total, message
+    finished = Signal(object)  # list of (full_name, path | None, error | None)
+    error = Signal(str)
+    status = Signal(str)
+
+
+class BackupRepositoriesWorker(QRunnable):
+    """Backup one or more repositories to ZIP files in a directory."""
+
+    def __init__(self, repositories: list[Repository], output_dir: str) -> None:
+        super().__init__()
+        self.repositories = list(repositories)
+        self.output_dir = output_dir
+        self.signals = BackupSignals()
+
+    @Slot()
+    def run(self) -> None:
+        from pathlib import Path
+
+        from repomanager.services.repo_backup import (
+            backup_repository_to_zip,
+            default_backup_filename,
+        )
+
+        results: list[tuple[str, str | None, str | None]] = []
+        try:
+            token = get_github_token()
+        except ConfigError as exc:
+            self.signals.error.emit(str(exc))
+            return
+
+        total = len(self.repositories)
+        out = Path(self.output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+
+        for index, repo in enumerate(self.repositories, start=1):
+            self.signals.progress.emit(index, total, repo.full_name)
+            filename = default_backup_filename(repo.owner, repo.name)
+            zip_path = out / filename
+            self.signals.status.emit(
+                tr("status.backing_up", name=repo.full_name, current=index, total=total)
+            )
+            try:
+                def _progress(msg: str, *, _name: str = repo.full_name) -> None:
+                    self.signals.status.emit(f"{_name}: {msg}")
+
+                backup_repository_to_zip(
+                    token,
+                    repo.owner,
+                    repo.name,
+                    zip_path,
+                    progress=_progress,
+                )
+                results.append((repo.full_name, str(zip_path), None))
+            except GitHubClientError as exc:
+                results.append((repo.full_name, None, str(exc)))
+            except Exception as exc:  # noqa: BLE001
+                results.append((repo.full_name, None, f"Unexpected error: {exc}"))
+
+        self.signals.finished.emit(results)

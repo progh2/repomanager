@@ -129,6 +129,43 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Rename this repository. All URLs and links will change.",
         "ja": "リポジトリ名を変更します。URLとリンクがすべて変わります。",
     },
+    "detail.backup": {"ko": "ZIP 백업", "en": "ZIP backup", "ja": "ZIPバックアップ"},
+    "detail.backup_tip": {
+        "ko": "모든 브랜치(git mirror)와 이슈·마일스톤을 ZIP으로 저장합니다. 삭제 전 백업에 유용합니다.",
+        "en": "Save all branches (git mirror) plus issues and milestones as a ZIP. Useful before delete.",
+        "ja": "全ブランチ (git mirror) と Issue・マイルストーンを ZIP で保存します。削除前のバックアップに便利です。",
+    },
+
+    "backup.choose_dir": {
+        "ko": "백업 ZIP을 저장할 폴더",
+        "en": "Folder for backup ZIP files",
+        "ja": "バックアップ ZIP の保存フォルダ",
+    },
+    "backup.title": {"ko": "ZIP 백업", "en": "ZIP backup", "ja": "ZIPバックアップ"},
+    "backup.done_title": {"ko": "백업 완료", "en": "Backup finished", "ja": "バックアップ完了"},
+    "backup.partial_title": {"ko": "일부 백업 실패", "en": "Some backups failed", "ja": "一部バックアップ失敗"},
+    "backup.failed_title": {"ko": "백업 실패", "en": "Backup failed", "ja": "バックアップ失敗"},
+    "backup.summary": {
+        "ko": "성공: {ok}\n실패: {fail}\n저장 폴더: {dir}",
+        "en": "Succeeded: {ok}\nFailed: {fail}\nFolder: {dir}",
+        "ja": "成功: {ok}\n失敗: {fail}\nフォルダ: {dir}",
+    },
+    "backup.failed_detail": {"ko": "실패 상세:", "en": "Failures:", "ja": "失敗の詳細:"},
+    "status.backing_up": {
+        "ko": "백업 중 {name} ({current}/{total})",
+        "en": "Backing up {name} ({current}/{total})",
+        "ja": "バックアップ中 {name} ({current}/{total})",
+    },
+    "status.backup_done": {
+        "ko": "백업 완료 — 성공 {ok}, 실패 {fail}.",
+        "en": "Backup finished — {ok} succeeded, {fail} failed.",
+        "ja": "バックアップ完了 — 成功 {ok}、失敗 {fail}。",
+    },
+    "confirm.backup_zip": {
+        "ko": "ZIP으로 백업...",
+        "en": "Backup as ZIP...",
+        "ja": "ZIPでバックアップ...",
+    },
 
     "rename.title": {"ko": "저장소 이름 변경", "en": "Rename repository", "ja": "リポジトリ名の変更"},
     "rename.warning": {
