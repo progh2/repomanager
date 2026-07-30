@@ -23,6 +23,9 @@ from repomanager.models.repository import Repository
 from repomanager.ui.repo_item_delegate import RepoItemDelegate
 
 
+SORT_MODES = ("updated_desc", "updated_asc", "created_desc", "created_asc", "name")
+
+
 class DualRepoLists(QWidget):
     selection_changed = Signal(int)
     current_repo_changed = Signal(object)  # Repository | None
@@ -45,11 +48,15 @@ class DualRepoLists(QWidget):
         self.visibility_filter = QComboBox()
         self.visibility_filter.currentIndexChanged.connect(self._rebuild_lists)
 
+        self.sort_combo = QComboBox()
+        self.sort_combo.currentIndexChanged.connect(self._rebuild_lists)
+
         filters = QHBoxLayout()
         filters.setSpacing(10)
         filters.addWidget(self.search, stretch=1)
         filters.addWidget(self.owner_filter)
         filters.addWidget(self.visibility_filter)
+        filters.addWidget(self.sort_combo)
 
         self.active_title = QLabel()
         self.active_title.setObjectName("paneTitle")
@@ -146,6 +153,16 @@ class DualRepoLists(QWidget):
         )
         self.visibility_filter.setCurrentIndex(max(0, vis_index))
         self.visibility_filter.blockSignals(False)
+
+        sort_current = self.sort_combo.currentData() or SORT_MODES[0]
+        self.sort_combo.blockSignals(True)
+        self.sort_combo.clear()
+        for mode in SORT_MODES:
+            self.sort_combo.addItem(tr(f"sort.{mode}"), mode)
+        idx = self.sort_combo.findData(sort_current)
+        self.sort_combo.setCurrentIndex(idx if idx >= 0 else 0)
+        self.sort_combo.setToolTip(tr("sort.label"))
+        self.sort_combo.blockSignals(False)
         self._rebuild_lists()
 
     def _make_list(self) -> QListWidget:
@@ -225,7 +242,26 @@ class DualRepoLists(QWidget):
                 if query not in haystack:
                     continue
             result.append(repo)
-        return result
+        return self._sorted(result)
+
+    def _sorted(self, repos: list[Repository]) -> list[Repository]:
+        mode = self.sort_combo.currentData() or SORT_MODES[0]
+
+        def updated_ts(repo: Repository) -> float:
+            return repo.updated_at.timestamp() if repo.updated_at else 0.0
+
+        def created_ts(repo: Repository) -> float:
+            return repo.created_at.timestamp() if repo.created_at else 0.0
+
+        if mode == "name":
+            return sorted(repos, key=lambda r: r.full_name.lower())
+        if mode == "updated_asc":
+            return sorted(repos, key=updated_ts)
+        if mode == "created_desc":
+            return sorted(repos, key=created_ts, reverse=True)
+        if mode == "created_asc":
+            return sorted(repos, key=created_ts)
+        return sorted(repos, key=updated_ts, reverse=True)
 
     def _rebuild_lists(self) -> None:
         active_selected = {r.full_name for r in self.selected_active()}

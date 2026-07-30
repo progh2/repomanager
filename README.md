@@ -7,14 +7,15 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 
 ## 기능
 
-- 설정에서 언어 변경 (한국어 / English / 日本語, 시스템 기본)
+- 전체 UI 다국어 지원 (한국어 / English / 日本語, 시스템 기본)
 - 설정 메뉴에서 PAT / GitHub CLI / 웹 로그인(Device Flow)
+- 토큰은 OS 자격 증명 저장소(keyring)에 안전하게 저장
 - 활성 / 아카이브 이중 목록과 → ← 이동
 - 생성일·업데이트일, 설명 편집, 공개/비공개 토글, GitHub Pages 링크
-- AI 추천 설명 (GitHub Models / Copilot 권한 필요)
+- AI 추천 설명 (GitHub Models / Copilot 권한 필요, UI 언어로 생성)
 - 인증된 계정의 저장소 목록 불러오기 (owner / organization / collaborator)
 - **Public / Private**, 설명(description), 이름·소유자, 업데이트 시각 표시
-- 검색·**Owner**·가시성·Archived 필터, 다중 선택
+- 검색·**Owner**·가시성 필터, 정렬(이름 / 업데이트순 / 생성순), 다중 선택
 - 행 더블클릭 시 브라우저에서 GitHub 페이지 열기
 - 선택 저장소 **일괄 Archive / Delete**
 - 실행 전 확인 창(이름 + 설명 + 경고, 삭제는 `DELETE` 입력)
@@ -85,7 +86,8 @@ python -m repomanager
 - 또는 **Import from GitHub CLI** (`gh auth login` 되어 있을 때)
 - 또는 **Sign in with GitHub (browser)** — OAuth Device Flow (아래)
 
-토큰은 OS 사용자 설정의 Qt `QSettings`에 저장됩니다 (`.env`보다 편함).
+토큰은 OS 자격 증명 저장소(Windows Credential Manager / macOS Keychain / Linux Secret Service)에
+`keyring`으로 안전하게 저장됩니다. keyring을 쓸 수 없는 환경에서만 Qt `QSettings`로 대체됩니다.
 
 ### 2) `.env` / 환경변수
 
@@ -136,7 +138,20 @@ gh auth refresh -h github.com -s delete_repo
 - **삭제는 되돌릴 수 없습니다.**
 - 아카이브는 읽기 전용으로 남기며, 나중에 GitHub에서 unarchive할 수 있습니다.
 
-## 패키징 (PyInstaller)
+## 배포판 다운로드 (GitHub Releases)
+
+`v*` 태그를 푸시하면 GitHub Actions가 Windows / macOS / Linux 실행 파일을 자동으로 빌드해
+[Releases](https://github.com/progh2/repomanager/releases)에 첨부합니다.
+Python 설치 없이 받아서 바로 실행할 수 있습니다.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+푸시할 때마다 CI(pytest)도 자동 실행됩니다.
+
+## 패키징 (PyInstaller, 수동)
 
 개발용 실행이 우선이며, 단일 실행 파일이 필요하면 PyInstaller를 사용할 수 있습니다.
 

@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            sep: ";"
+            icon_flag: --icon src/repomanager/ui/assets/icon.png
+            archive: RepoManager-windows.zip
+          - os: macos-latest
+            sep: ":"
+            icon_flag: --icon src/repomanager/ui/assets/icon.png
+            archive: RepoManager-macos.zip
+          - os: ubuntu-latest
+            sep: ":"
+            icon_flag: ""
+            archive: RepoManager-linux.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Qt system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller pillow
+
+      - name: Build with PyInstaller
+        shell: bash
+        run: |
+          pyinstaller --noconfirm --windowed --name RepoManager \
+            --paths src \
+            --collect-all PySide6 \
+            --add-data "src/repomanager/ui/styles.qss${{ matrix.sep }}repomanager/ui" \
+            --add-data "src/repomanager/ui/assets${{ matrix.sep }}repomanager/ui/assets" \
+            ${{ matrix.icon_flag }} \
+            src/repomanager/__main__.py
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path dist/RepoManager -DestinationPath ${{ matrix.archive }}
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: cd dist && zip -ry "../${{ matrix.archive }}" RepoManager.app
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: tar -czf ${{ matrix.archive }} -C dist RepoManager
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.archive }}

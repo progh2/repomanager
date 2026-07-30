@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from repomanager.i18n import tr
 from repomanager.models.repository import Repository
 
 DELETE_CONFIRM_WORD = "DELETE"
@@ -30,30 +31,22 @@ class ConfirmDialog(QDialog):
         self._is_delete = self._action == "delete"
         self._is_unarchive = self._action == "unarchive"
         if self._is_delete:
-            title = "삭제 확인"
+            title = tr("confirm.delete_title")
         elif self._is_unarchive:
-            title = "활성 복원 확인"
+            title = tr("confirm.unarchive_title")
         else:
-            title = "아카이브 확인"
+            title = tr("confirm.archive_title")
         self.setWindowTitle(title)
         self.setMinimumWidth(520)
         self.setMinimumHeight(400)
 
+        count = len(repositories)
         if self._is_delete:
-            warning = (
-                f"선택한 {len(repositories)}개 저장소를 삭제합니다.\n"
-                "이 작업은 되돌릴 수 없습니다."
-            )
+            warning = tr("confirm.delete_warning", n=count)
         elif self._is_unarchive:
-            warning = (
-                f"선택한 {len(repositories)}개 저장소를 아카이브에서 꺼내\n"
-                "다시 활성 상태로 만듭니다."
-            )
+            warning = tr("confirm.unarchive_warning", n=count)
         else:
-            warning = (
-                f"선택한 {len(repositories)}개 저장소를 아카이브합니다.\n"
-                "읽기 전용으로 보관되며, 나중에 다시 활성으로 되돌릴 수 있습니다."
-            )
+            warning = tr("confirm.archive_warning", n=count)
 
         label = QLabel(warning)
         label.setWordWrap(True)
@@ -65,17 +58,13 @@ class ConfirmDialog(QDialog):
         for repo in repositories:
             text = f"{repo.full_name} — {repo.short_description}"
             item = QListWidgetItem(text)
-            item.setToolTip(repo.description or "(설명 없음)")
+            item.setToolTip(repo.description or tr("list.no_desc"))
             listing.addItem(item)
 
         self._confirm_input: QLineEdit | None = None
         confirm_hint: QLabel | None = None
         if self._is_delete:
-            confirm_hint = QLabel(
-                f"계속하려면 아래에 <b>{DELETE_CONFIRM_WORD}</b> 를 입력하세요.<br>"
-                "삭제에는 <b>delete_repo</b> 권한이 필요합니다. "
-                "권한이 없으면 도움말 → 삭제 권한 안내를 보세요."
-            )
+            confirm_hint = QLabel(tr("confirm.delete_hint", word=DELETE_CONFIRM_WORD))
             confirm_hint.setWordWrap(True)
             self._confirm_input = QLineEdit()
             self._confirm_input.setPlaceholderText(DELETE_CONFIRM_WORD)
@@ -83,16 +72,16 @@ class ConfirmDialog(QDialog):
 
         self._buttons = QDialogButtonBox()
         if self._is_delete:
-            accept_text = "영구 삭제"
+            accept_text = tr("confirm.delete_accept")
         elif self._is_unarchive:
-            accept_text = "활성으로 복원"
+            accept_text = tr("confirm.unarchive_accept")
         else:
-            accept_text = "아카이브"
+            accept_text = tr("confirm.archive_accept")
         self._accept_btn = self._buttons.addButton(
             accept_text,
             QDialogButtonBox.ButtonRole.AcceptRole,
         )
-        self._buttons.addButton("취소", QDialogButtonBox.ButtonRole.RejectRole)
+        self._buttons.addButton(tr("confirm.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
         self._accept_btn.setDefault(False)
         self._buttons.accepted.connect(self.accept)
         self._buttons.rejected.connect(self.reject)

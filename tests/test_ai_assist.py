@@ -4,11 +4,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from repomanager.i18n import set_language, tr
 from repomanager.services.ai_assist import CopilotAccessError, suggest_repository_description
 
 
 @patch("repomanager.services.ai_assist.check_models_access", return_value=False)
 def test_suggest_without_access(_check: MagicMock) -> None:
+    set_language("ko", notify=False)
     with pytest.raises(CopilotAccessError) as exc:
         suggest_repository_description(
             "token",
@@ -16,7 +18,7 @@ def test_suggest_without_access(_check: MagicMock) -> None:
             current_description="",
             readme_excerpt="",
         )
-    assert "권한이 없습니다" in str(exc.value)
+    assert str(exc.value) == tr("ai.no_access")
 
 
 @patch("repomanager.services.ai_assist.check_models_access", return_value=True)

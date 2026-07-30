@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import requests
 
+from repomanager.i18n import get_language, tr
 from repomanager.services.github_client import GitHubClientError
 
 MODELS_CATALOG_URL = "https://models.github.ai/catalog/models"
@@ -39,22 +40,22 @@ def suggest_repository_description(
     current_description: str,
     readme_excerpt: str,
 ) -> str:
-    """Ask GitHub Models to propose a short Korean repository description."""
+    """Ask GitHub Models to propose a short repository description in the UI language."""
     if not check_models_access(token):
-        raise CopilotAccessError(
-            "GitHub Models / Copilot 호출 권한이 없습니다.\n"
-            "GitHub Copilot 또는 Models 접근이 가능한 계정/토큰인지 확인하세요.",
-            status=403,
-        )
+        raise CopilotAccessError(tr("ai.no_access"), status=403)
 
+    language = {"ko": "Korean", "en": "English", "ja": "Japanese"}.get(
+        get_language(), "English"
+    )
     prompt = (
-        "당신은 GitHub 저장소 설명을 작성하는 도우미입니다.\n"
-        "아래 정보를 보고 한국어로 저장소 description을 한 문장~두 문장으로 작성하세요.\n"
-        "350자 이내, 과장 없이, 수업/실습용일 수 있음을 고려하세요.\n"
-        "따옴표나 마크다운 없이 설명 본문만 출력하세요.\n\n"
-        f"저장소: {full_name}\n"
-        f"현재 설명: {current_description or '(없음)'}\n"
-        f"README 일부:\n{readme_excerpt or '(README 없음)'}\n"
+        "You write GitHub repository descriptions.\n"
+        f"Based on the info below, write the description in {language}, "
+        "one or two sentences, under 350 characters, without exaggeration. "
+        "It may be a classroom/practice repository.\n"
+        "Output only the description text, no quotes or markdown.\n\n"
+        f"Repository: {full_name}\n"
+        f"Current description: {current_description or '(none)'}\n"
+        f"README excerpt:\n{readme_excerpt or '(no README)'}\n"
     )
     try:
         response = requests.post(
@@ -76,17 +77,16 @@ def suggest_repository_description(
             timeout=60,
         )
     except requests.RequestException as exc:
-        raise GitHubClientError(f"AI 요청 실패: {exc}") from exc
+        raise GitHubClientError(tr("ai.request_failed", exc=exc)) from exc
 
     if response.status_code in {401, 403}:
         raise CopilotAccessError(
-            "GitHub Models / Copilot 호출 권한이 없습니다.\n"
-            f"HTTP {response.status_code}",
+            tr("ai.no_access_http", status=response.status_code),
             status=response.status_code,
         )
     if response.status_code >= 400:
         raise GitHubClientError(
-            f"AI 추천 실패 (HTTP {response.status_code}): {response.text[:300]}",
+            tr("ai.failed_http", status=response.status_code, body=response.text[:300]),
             status=response.status_code,
         )
 
@@ -94,8 +94,8 @@ def suggest_repository_description(
     try:
         content = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise GitHubClientError("AI 응답 형식을 해석하지 못했습니다.") from exc
+        raise GitHubClientError(tr("ai.bad_response")) from exc
     text = str(content).strip().strip('"').strip("'")
     if not text:
-        raise GitHubClientError("AI가 빈 설명을 반환했습니다.")
+        raise GitHubClientError(tr("ai.empty"))
     return text[:350]

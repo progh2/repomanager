@@ -20,6 +20,31 @@ KEY_TOKEN = "github/token"
 KEY_CLIENT_ID = "github/oauth_client_id"
 KEY_USE_GH_CLI = "github/use_gh_cli"
 
+KEYRING_SERVICE = "RepoManager"
+KEYRING_USER = "github_token"
+
+_keyring_ok: bool | None = None
+
+
+def _keyring_available() -> bool:
+    """Probe the OS credential store once and cache the result."""
+    global _keyring_ok
+    if _keyring_ok is not None:
+        return _keyring_ok
+    try:
+        import keyring
+
+        keyring.get_password(KEYRING_SERVICE, "__probe__")
+        _keyring_ok = True
+    except Exception:  # noqa: BLE001 — any backend failure means "not usable"
+        _keyring_ok = False
+    return _keyring_ok
+
+
+def token_storage_is_secure() -> bool:
+    """True when tokens are kept in the OS credential store instead of QSettings."""
+    return _keyring_available()
+
 
 def _find_dotenv() -> Path | None:
     candidates = [
@@ -45,13 +70,57 @@ def app_settings() -> QSettings:
     return QSettings(SETTINGS_ORG, SETTINGS_APP)
 
 
-def get_saved_token() -> str:
+def _get_qsettings_token() -> str:
     return str(app_settings().value(KEY_TOKEN, "") or "").strip()
 
 
-def set_saved_token(token: str) -> None:
+def _remove_qsettings_token() -> None:
     settings = app_settings()
+    settings.remove(KEY_TOKEN)
+    settings.sync()
+
+
+def get_saved_token() -> str:
+    if _keyring_available():
+        import keyring
+
+        try:
+            token = (keyring.get_password(KEYRING_SERVICE, KEYRING_USER) or "").strip()
+        except Exception:  # noqa: BLE001
+            token = ""
+        if token:
+            return token
+        # Migrate a token previously stored in QSettings (plaintext) to keyring.
+        legacy = _get_qsettings_token()
+        if legacy:
+            try:
+                keyring.set_password(KEYRING_SERVICE, KEYRING_USER, legacy)
+                _remove_qsettings_token()
+            except Exception:  # noqa: BLE001
+                pass
+            return legacy
+        return ""
+    return _get_qsettings_token()
+
+
+def set_saved_token(token: str) -> None:
     token = token.strip()
+    if _keyring_available():
+        import keyring
+
+        try:
+            if token:
+                keyring.set_password(KEYRING_SERVICE, KEYRING_USER, token)
+            else:
+                try:
+                    keyring.delete_password(KEYRING_SERVICE, KEYRING_USER)
+                except Exception:  # noqa: BLE001 — nothing stored yet
+                    pass
+            _remove_qsettings_token()
+            return
+        except Exception:  # noqa: BLE001 — fall back to QSettings below
+            pass
+    settings = app_settings()
     if token:
         settings.setValue(KEY_TOKEN, token)
     else:
@@ -82,7 +151,10 @@ def set_oauth_client_id(client_id: str) -> None:
 
 
 def get_use_gh_cli() -> bool:
-    return bool(app_settings().value(KEY_USE_GH_CLI, False))
+    value = app_settings().value(KEY_USE_GH_CLI, False)
+    if isinstance(value, str):
+        return value.lower() in {"true", "1", "yes"}
+    return bool(value)
 
 
 def set_use_gh_cli(enabled: bool) -> None:
@@ -115,16 +187,15 @@ def _is_placeholder(token: str) -> bool:
 
 def get_github_token() -> str:
     """Resolve token: env → optional gh CLI → saved settings."""
+    from repomanager.i18n import tr
+
     load_config()
 
     env_token = (os.getenv("GITHUB_TOKEN") or "").strip()
     if env_token and not _is_placeholder(env_token):
         return env_token
     if env_token and _is_placeholder(env_token):
-        raise ConfigError(
-            "GITHUB_TOKEN still has the placeholder value. "
-            "Open Settings or replace it in .env."
-        )
+        raise ConfigError(tr("config.placeholder_token"))
 
     if get_use_gh_cli():
         gh_token = try_gh_cli_token()
@@ -140,10 +211,7 @@ def get_github_token() -> str:
     if gh_token:
         return gh_token
 
-    raise ConfigError(
-        "GitHub 토큰이 없습니다. 파일 → 설정에서 PAT를 넣거나, "
-        "GitHub CLI에서 가져오거나, 웹 로그인을 사용하세요."
-    )
+    raise ConfigError(tr("config.no_token"))
 
 
 def token_source_label() -> str:
@@ -161,4 +229,3 @@ def token_source_label() -> str:
     if try_gh_cli_token():
         return tr("token.source.gh")
     return tr("token.source.none")
-

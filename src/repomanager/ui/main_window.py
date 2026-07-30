@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from repomanager.i18n import add_listener, init_language, remove_listener, tr
+from repomanager.i18n import add_listener, remove_listener, tr
 from repomanager.config import ConfigError, get_github_token, token_source_label
 from repomanager.models.repository import Repository
 from repomanager.services.github_client import RateLimitInfo
@@ -37,19 +37,11 @@ from repomanager.workers.api_worker import (
     UpdateDescriptionWorker,
 )
 
-DELETE_SCOPE_HINT = (
-    "저장소 삭제에는 delete_repo 권한이 필요합니다.\n\n"
-    "GitHub CLI를 쓰는 경우 터미널에서 아래를 실행하세요:\n"
-    "  gh auth refresh -h github.com -s delete_repo\n\n"
-    "또는 설정에서 delete_repo가 포함된 Classic PAT를 저장하세요.\n"
-    "(Fine-grained PAT는 Administration: Read and write 필요)"
-)
+GH_DELETE_CMD = "gh auth refresh -h github.com -s delete_repo"
 
-ACTION_LABELS = {
-    "archive": "아카이브",
-    "unarchive": "활성 복원",
-    "delete": "삭제",
-}
+
+def action_label(action: str) -> str:
+    return tr(f"action.{action}") if action in {"archive", "unarchive", "delete"} else action
 
 
 class MainWindow(QMainWindow):
@@ -94,7 +86,6 @@ class MainWindow(QMainWindow):
         self.delete_btn = QPushButton()
         self.delete_btn.setObjectName("dangerBtn")
         self.delete_btn.clicked.connect(lambda: self._confirm_action("delete"))
-        self.delete_btn.setToolTip(DELETE_SCOPE_HINT)
 
         self.selection_label = QLabel()
 
@@ -163,6 +154,7 @@ class MainWindow(QMainWindow):
         self.select_all_btn.setText(tr("btn.select_all"))
         self.clear_btn.setText(tr("btn.clear"))
         self.delete_btn.setText(tr("btn.delete"))
+        self.delete_btn.setToolTip(tr("help.delete_scope"))
         self.hint.setText(tr("hint.main"))
         self._auth_label.setText(tr("auth.label", src=token_source_label()))
         count = len(self.repo_lists.selected_repositories())
@@ -202,8 +194,8 @@ class MainWindow(QMainWindow):
     def open_settings(self) -> None:
         dialog = SettingsDialog(self)
         if dialog.exec() == SettingsDialog.DialogCode.Accepted:
-            self._auth_label.setText(f"인증: {token_source_label()}")
-            self._set_status("설정을 저장했습니다.")
+            self._auth_label.setText(tr("auth.label", src=token_source_label()))
+            self._set_status(tr("status.settings_saved"))
 
     def show_about(self) -> None:
         AboutDialog(self).exec()
@@ -211,19 +203,19 @@ class MainWindow(QMainWindow):
     def show_delete_permission_help(self) -> None:
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Information)
-        box.setWindowTitle("삭제 권한 안내")
-        box.setText("저장소를 삭제하려면 delete_repo 권한이 필요합니다.")
-        box.setInformativeText(DELETE_SCOPE_HINT)
-        copy_btn = box.addButton("명령 복사", QMessageBox.ButtonRole.ActionRole)
-        settings_btn = box.addButton("설정 열기", QMessageBox.ButtonRole.ActionRole)
+        box.setWindowTitle(tr("delete_help.title"))
+        box.setText(tr("delete_help.text"))
+        box.setInformativeText(tr("help.delete_scope"))
+        copy_btn = box.addButton(tr("delete_help.copy"), QMessageBox.ButtonRole.ActionRole)
+        settings_btn = box.addButton(
+            tr("delete_help.open_settings"), QMessageBox.ButtonRole.ActionRole
+        )
         box.addButton(QMessageBox.StandardButton.Ok)
         box.exec()
         clicked = box.clickedButton()
         if clicked is copy_btn:
-            QGuiApplication.clipboard().setText(
-                "gh auth refresh -h github.com -s delete_repo"
-            )
-            self._set_status("삭제 권한 명령을 클립보드에 복사했습니다.")
+            QGuiApplication.clipboard().setText(GH_DELETE_CMD)
+            self._set_status(tr("delete_help.copied"))
         elif clicked is settings_btn:
             self.open_settings()
 
@@ -233,9 +225,8 @@ class MainWindow(QMainWindow):
         except ConfigError:
             answer = QMessageBox.question(
                 self,
-                "GitHub 토큰 필요",
-                "GitHub 토큰이 아직 없습니다.\n"
-                "설정에서 PAT 입력, GitHub CLI, 또는 웹 로그인을 구성할까요?",
+                tr("token.needed_title"),
+                tr("token.needed_text"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if answer == QMessageBox.StandardButton.Yes:
@@ -244,7 +235,7 @@ class MainWindow(QMainWindow):
     def load_repositories(self) -> None:
         if self._busy:
             return
-        self._set_busy(True, status="불러오는 중...")
+        self._set_busy(True, status=tr("status.loading"))
 
         worker = ListReposWorker()
         worker.signals.status.connect(self._set_status)
@@ -259,14 +250,14 @@ class MainWindow(QMainWindow):
         self._update_rate_limit(result.rate_limit)
         self._set_busy(
             False,
-            status=f"{result.login} 저장소 {len(result.repositories)}개를 불러왔습니다.",
+            status=tr("status.loaded", login=result.login, n=len(result.repositories)),
         )
         self._set_action_buttons_enabled(True)
 
     def _on_load_error(self, message: str) -> None:
-        self._set_busy(False, status="불러오기 실패.")
+        self._set_busy(False, status=tr("status.load_failed"))
         self._set_action_buttons_enabled(True)
-        QMessageBox.critical(self, "GitHub 오류", message)
+        QMessageBox.critical(self, tr("err.github_title"), message)
 
     def _on_selection_changed(self, count: int) -> None:
         self.selection_label.setText(tr("label.selected", n=count))
@@ -277,7 +268,7 @@ class MainWindow(QMainWindow):
     def _save_description(self, repo: object, description: str) -> None:
         if self._busy or not isinstance(repo, Repository):
             return
-        self._set_busy(True, status="설명 저장 중...")
+        self._set_busy(True, status=tr("status.saving_desc"))
         worker = UpdateDescriptionWorker(repo, description)
         worker.signals.status.connect(self._set_status)
         worker.signals.error.connect(self._on_edit_error)
@@ -287,17 +278,17 @@ class MainWindow(QMainWindow):
     def _toggle_visibility(self, repo: object) -> None:
         if self._busy or not isinstance(repo, Repository):
             return
-        target = "비공개" if not repo.private else "공개"
+        target = tr("vis.private") if not repo.private else tr("vis.public")
         answer = QMessageBox.question(
             self,
-            "공개 여부 변경",
-            f"{repo.full_name} 저장소를 {target}로 바꿀까요?",
+            tr("vis.change_title"),
+            tr("vis.change_question", name=repo.full_name, target=target),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if answer != QMessageBox.StandardButton.Yes:
             self.detail.set_repository(repo)
             return
-        self._set_busy(True, status="공개 여부 변경 중...")
+        self._set_busy(True, status=tr("status.changing_vis"))
         worker = ToggleVisibilityWorker(repo)
         worker.signals.status.connect(self._set_status)
         worker.signals.error.connect(self._on_edit_error)
@@ -307,7 +298,7 @@ class MainWindow(QMainWindow):
     def _suggest_description(self, repo: object) -> None:
         if self._busy or not isinstance(repo, Repository):
             return
-        self._set_busy(True, status="AI 추천 준비 중...")
+        self._set_busy(True, status=tr("status.ai_preparing"))
         worker = SuggestDescriptionWorker(repo)
         worker.signals.status.connect(self._set_status)
         worker.signals.error.connect(self._on_suggest_error)
@@ -318,23 +309,23 @@ class MainWindow(QMainWindow):
         assert isinstance(repo, Repository)
         self.repo_lists.upsert_repository(repo)
         self.detail.set_repository(repo)
-        self._set_busy(False, status=f"{repo.full_name} 정보를 업데이트했습니다.")
+        self._set_busy(False, status=tr("status.updated", name=repo.full_name))
         self._set_action_buttons_enabled(True)
 
     def _on_edit_error(self, message: str) -> None:
-        self._set_busy(False, status="수정 실패.")
+        self._set_busy(False, status=tr("status.edit_failed"))
         self._set_action_buttons_enabled(True)
-        QMessageBox.critical(self, "수정 실패", message)
+        QMessageBox.critical(self, tr("err.edit_title"), message)
 
     def _on_suggest_finished(self, text: str) -> None:
         self.detail.apply_suggestion(text)
-        self._set_busy(False, status="AI 추천 설명을 반영했습니다. 필요하면 수정 후 저장하세요.")
+        self._set_busy(False, status=tr("status.ai_applied"))
         self._set_action_buttons_enabled(True)
 
     def _on_suggest_error(self, message: str) -> None:
-        self._set_busy(False, status="AI 추천 실패.")
+        self._set_busy(False, status=tr("status.ai_failed"))
         self._set_action_buttons_enabled(True)
-        QMessageBox.warning(self, "AI 추천", message)
+        QMessageBox.warning(self, tr("ai.title"), message)
 
     def _confirm_action(
         self,
@@ -357,8 +348,7 @@ class MainWindow(QMainWindow):
         self._run_bulk_action(action, selected)
 
     def _run_bulk_action(self, action: str, repositories: list[Repository]) -> None:
-        label = ACTION_LABELS.get(action, action)
-        self._set_busy(True, status=f"{label} 시작...")
+        self._set_busy(True, status=tr("status.action_start", action=action_label(action)))
         self.progress.setVisible(True)
         self.progress.setMaximum(len(repositories))
         self.progress.setValue(0)
@@ -374,13 +364,15 @@ class MainWindow(QMainWindow):
     def _on_bulk_progress(self, current: int, total: int, full_name: str) -> None:
         self.progress.setMaximum(total)
         self.progress.setValue(current)
-        self._set_status(f"처리 중 {full_name} ({current}/{total})")
+        self._set_status(
+            tr("status.action_progress", name=full_name, current=current, total=total)
+        )
 
     def _on_bulk_setup_error(self, message: str) -> None:
         self.progress.setVisible(False)
-        self._set_busy(False, status="작업 실패.")
+        self._set_busy(False, status=tr("status.action_failed"))
         self._set_action_buttons_enabled(True)
-        QMessageBox.critical(self, "GitHub 오류", message)
+        QMessageBox.critical(self, tr("err.github_title"), message)
 
     def _on_bulk_finished(self, result: object) -> None:
         assert isinstance(result, BulkActionResult)
@@ -388,16 +380,16 @@ class MainWindow(QMainWindow):
         self._set_busy(False)
         self._set_action_buttons_enabled(True)
 
-        action_ko = ACTION_LABELS.get(result.action, result.action)
+        label = action_label(result.action)
         lines = [
-            f"작업: {action_ko}",
-            f"성공: {result.success_count}",
-            f"실패: {result.failure_count}",
+            tr("result.action", action=label),
+            tr("result.success", n=result.success_count),
+            tr("result.failure", n=result.failure_count),
         ]
         missing_delete_scope = False
         if result.failed:
             lines.append("")
-            lines.append("실패 상세:")
+            lines.append(tr("result.failed_detail"))
             for failure in result.failed:
                 lines.append(f"- {failure.full_name}: {failure.message}")
                 if "delete_repo" in failure.message:
@@ -405,17 +397,22 @@ class MainWindow(QMainWindow):
 
         summary = "\n".join(lines)
         if result.failure_count and result.success_count:
-            QMessageBox.warning(self, "일부 실패", summary)
+            QMessageBox.warning(self, tr("result.partial_title"), summary)
         elif result.failure_count:
-            QMessageBox.critical(self, "작업 실패", summary)
+            QMessageBox.critical(self, tr("result.failed_title"), summary)
         else:
-            QMessageBox.information(self, "완료", summary)
+            QMessageBox.information(self, tr("result.done_title"), summary)
 
         if missing_delete_scope:
             self.show_delete_permission_help()
 
         self._set_status(
-            f"{action_ko} 완료 — 성공 {result.success_count}, 실패 {result.failure_count}."
+            tr(
+                "status.action_done",
+                action=label,
+                s=result.success_count,
+                f=result.failure_count,
+            )
         )
         self.load_repositories()
 

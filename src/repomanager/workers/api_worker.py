@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 
 from repomanager.config import ConfigError, get_github_token
+from repomanager.i18n import tr
 from repomanager.models.repository import Repository
 from repomanager.services.github_client import GitHubClient, GitHubClientError, RateLimitInfo
 
@@ -163,7 +164,7 @@ class UpdateDescriptionWorker(QRunnable):
     def run(self) -> None:
         try:
             client = GitHubClient(get_github_token())
-            self.signals.status.emit(f"설명 저장 중: {self.repo.full_name}")
+            self.signals.status.emit(tr("status.saving_desc_name", name=self.repo.full_name))
             updated = client.update_description(
                 self.repo.owner, self.repo.name, self.description
             )
@@ -185,7 +186,7 @@ class ToggleVisibilityWorker(QRunnable):
         try:
             client = GitHubClient(get_github_token())
             new_private = not self.repo.private
-            label = "비공개" if new_private else "공개"
+            label = tr("vis.private") if new_private else tr("vis.public")
             self.signals.status.emit(f"{self.repo.full_name} → {label}")
             updated = client.set_private(self.repo.owner, self.repo.name, new_private)
             self.signals.finished.emit(updated)
@@ -217,9 +218,9 @@ class SuggestDescriptionWorker(QRunnable):
 
             token = get_github_token()
             client = GitHubClient(token)
-            self.signals.status.emit("README와 저장소 정보를 확인하는 중...")
+            self.signals.status.emit(tr("status.ai_checking"))
             readme = client.get_readme_excerpt(self.repo.owner, self.repo.name)
-            self.signals.status.emit("AI 추천 설명을 생성하는 중...")
+            self.signals.status.emit(tr("status.ai_generating"))
             suggestion = suggest_repository_description(
                 token,
                 full_name=self.repo.full_name,

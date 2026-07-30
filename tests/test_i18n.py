@@ -1,6 +1,16 @@
 """Tests for i18n helpers."""
 
-from repomanager.i18n import resolve_language, set_language, tr
+from repomanager.i18n import STRINGS, SUPPORTED, resolve_language, set_language, tr
+
+
+def test_all_keys_have_all_languages() -> None:
+    missing = [
+        (key, lang)
+        for key, entry in STRINGS.items()
+        for lang in SUPPORTED
+        if not entry.get(lang)
+    ]
+    assert not missing
 
 
 def test_tr_switches_language() -> None:
