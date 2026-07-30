@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QThreadPool
-from PySide6.QtGui import QAction, QGuiApplication
+from PySide6.QtCore import QThreadPool, QTimer
+from PySide6.QtGui import QAction, QGuiApplication, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -19,9 +19,15 @@ from PySide6.QtWidgets import (
 )
 
 from repomanager.i18n import add_listener, remove_listener, tr
-from repomanager.config import ConfigError, get_github_token, token_source_label
+from repomanager.config import (
+    ConfigError,
+    app_settings,
+    get_github_token,
+    token_source_label,
+)
 from repomanager.models.repository import Repository
 from repomanager.services.github_client import RateLimitInfo
+from repomanager.services.repo_cache import load_cache, save_cache
 from repomanager.ui.about_dialog import AboutDialog
 from repomanager.ui.confirm_dialog import ConfirmDialog
 from repomanager.ui.dual_repo_lists import DualRepoLists
@@ -49,7 +55,11 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("RepoManager")
-        self.resize(1200, 820)
+        geometry = app_settings().value("ui/geometry")
+        if geometry is not None:
+            self.restoreGeometry(geometry)
+        else:
+            self.resize(1200, 820)
         self._pool = QThreadPool.globalInstance()
         self._busy = False
         self._apply_stylesheet()
@@ -71,7 +81,14 @@ class MainWindow(QMainWindow):
         self.repo_lists.unarchive_requested.connect(
             lambda repos: self._confirm_action("unarchive", repos)
         )
+        self.repo_lists.delete_requested.connect(
+            lambda repos: self._confirm_action("delete", repos)
+        )
         self._loading = LoadingOverlay(self.repo_lists)
+
+        for key in ("F5", "Ctrl+R"):
+            shortcut = QShortcut(QKeySequence(key), self)
+            shortcut.activated.connect(self.load_repositories)
 
         self.detail = RepoDetailPanel()
         self.detail.save_description_requested.connect(self._save_description)
@@ -132,11 +149,29 @@ class MainWindow(QMainWindow):
         self._set_action_buttons_enabled(False)
         self.retranslate_ui()
         add_listener(self.retranslate_ui)
-        self._maybe_prompt_settings()
+        self._startup()
 
     def closeEvent(self, event) -> None:  # noqa: N802
+        app_settings().setValue("ui/geometry", self.saveGeometry())
         remove_listener(self.retranslate_ui)
         super().closeEvent(event)
+
+    def _startup(self) -> None:
+        """Show cached list immediately, then refresh if a token is available."""
+        cached = load_cache()
+        if cached is not None and cached.repositories:
+            self.repo_lists.set_repositories(cached.repositories)
+            self._set_action_buttons_enabled(True)
+            self._set_status(
+                tr("status.cache_shown", time=cached.saved_at.strftime("%Y-%m-%d %H:%M"))
+            )
+        try:
+            get_github_token()
+        except ConfigError:
+            self._maybe_prompt_settings()
+            return
+        if cached is not None and cached.repositories:
+            QTimer.singleShot(0, self.load_repositories)
 
     def retranslate_ui(self) -> None:
         self.setWindowTitle(tr("app.name"))
@@ -166,7 +201,10 @@ class MainWindow(QMainWindow):
         self._set_status(tr("status.ready"))
 
     def _apply_stylesheet(self) -> None:
-        qss_path = Path(__file__).with_name("styles.qss")
+        from repomanager.ui.theme import is_dark
+
+        filename = "styles_dark.qss" if is_dark() else "styles.qss"
+        qss_path = Path(__file__).with_name(filename)
         if qss_path.is_file():
             self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
 
@@ -196,6 +234,8 @@ class MainWindow(QMainWindow):
     def open_settings(self) -> None:
         dialog = SettingsDialog(self)
         if dialog.exec() == SettingsDialog.DialogCode.Accepted:
+            self._apply_stylesheet()
+            self.repo_lists.update()
             self._auth_label.setText(tr("auth.label", src=token_source_label()))
             self._set_status(tr("status.settings_saved"))
 
@@ -250,6 +290,7 @@ class MainWindow(QMainWindow):
     def _on_load_finished(self, result: object) -> None:
         assert isinstance(result, LoadResult)
         self._loading.stop()
+        save_cache(result.repositories, result.login)
         self.repo_lists.set_repositories(result.repositories)
         self.detail.set_repository(None)
         self._update_rate_limit(result.rate_limit)

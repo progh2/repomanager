@@ -130,6 +130,9 @@ STRINGS: dict[str, dict[str, str]] = {
     "settings.lang_ko": {"ko": "한국어", "en": "Korean", "ja": "韓国語"},
     "settings.lang_en": {"ko": "영어", "en": "English", "ja": "英語"},
     "settings.lang_ja": {"ko": "일본어", "en": "Japanese", "ja": "日本語"},
+    "settings.theme": {"ko": "테마", "en": "Theme", "ja": "テーマ"},
+    "settings.theme_light": {"ko": "라이트", "en": "Light", "ja": "ライト"},
+    "settings.theme_dark": {"ko": "다크", "en": "Dark", "ja": "ダーク"},
     "settings.save": {"ko": "저장", "en": "Save", "ja": "保存"},
     "settings.cancel": {"ko": "취소", "en": "Cancel", "ja": "キャンセル"},
     "settings.token_source": {
@@ -221,6 +224,11 @@ STRINGS: dict[str, dict[str, str]] = {
     },
 
     "status.loading": {"ko": "불러오는 중...", "en": "Loading...", "ja": "読み込み中..."},
+    "status.cache_shown": {
+        "ko": "캐시된 목록 표시 중 (저장: {time}) — 백그라운드에서 새로고침합니다.",
+        "en": "Showing cached list (saved {time}) — refreshing in the background.",
+        "ja": "キャッシュされた一覧を表示中 (保存: {time}) — バックグラウンドで更新します。",
+    },
     "status.reading_token": {"ko": "토큰 확인 중...", "en": "Checking token...", "ja": "トークンを確認中..."},
     "status.authenticating": {"ko": "GitHub 인증 중...", "en": "Authenticating with GitHub...", "ja": "GitHub 認証中..."},
     "status.loading_for": {

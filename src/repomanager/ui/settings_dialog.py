@@ -44,6 +44,7 @@ from repomanager.services.oauth_device import (
     poll_for_access_token,
     request_device_code,
 )
+from repomanager.ui.theme import get_theme, set_theme
 
 GH_DELETE_CMD = "gh auth refresh -h github.com -s delete_repo"
 
@@ -111,9 +112,15 @@ class SettingsDialog(QDialog):
         idx = max(0, self.language_combo.findData(pref))
         self.language_combo.setCurrentIndex(idx)
 
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItem(tr("settings.theme_light"), "light")
+        self.theme_combo.addItem(tr("settings.theme_dark"), "dark")
+        self.theme_combo.setCurrentIndex(max(0, self.theme_combo.findData(get_theme())))
+
         lang_box = QGroupBox(tr("settings.language"))
         lang_form = QFormLayout(lang_box)
         lang_form.addRow(tr("settings.language"), self.language_combo)
+        lang_form.addRow(tr("settings.theme"), self.theme_combo)
 
         # --- Permission guide ---
         guide = QTextBrowser()
@@ -286,6 +293,7 @@ class SettingsDialog(QDialog):
         set_oauth_client_id(self.client_id_edit.text())
         set_use_gh_cli(self.use_gh.isChecked())
         set_saved_token(self.token_edit.text())
+        set_theme(str(self.theme_combo.currentData() or "light"))
         pref = str(self.language_combo.currentData() or "auto")
         set_saved_language_preference(pref)
         set_language(resolve_language(pref), notify=True)

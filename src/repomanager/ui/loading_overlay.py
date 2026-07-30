@@ -6,6 +6,8 @@ from PySide6.QtCore import QEvent, QObject, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from repomanager.ui import theme
+
 
 class LoadingOverlay(QWidget):
     """Covers its parent widget while a long operation runs."""
@@ -51,7 +53,7 @@ class LoadingOverlay(QWidget):
     def paintEvent(self, event) -> None:  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor(238, 242, 245, 215))
+        painter.fillRect(self.rect(), QColor(*theme.color("overlay_bg")))
 
         center = self.rect().center()
         radius = 26
@@ -62,17 +64,17 @@ class LoadingOverlay(QWidget):
             radius * 2,
         )
 
-        track_pen = QPen(QColor(13, 122, 111, 45), 5)
+        track_pen = QPen(QColor(*theme.color("spinner_track")), 5)
         painter.setPen(track_pen)
         painter.drawEllipse(spinner_rect)
 
-        arc_pen = QPen(QColor("#0d7a6f"), 5)
+        arc_pen = QPen(QColor(theme.color("accent")), 5)
         arc_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(arc_pen)
         painter.drawArc(spinner_rect, -self._angle * 16, 100 * 16)
 
         if self._text:
-            painter.setPen(QColor("#14353a"))
+            painter.setPen(QColor(theme.color("overlay_text")))
             font = painter.font()
             font.setPointSize(11)
             font.setBold(True)

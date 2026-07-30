@@ -8,11 +8,7 @@ from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem
 
 from repomanager.i18n import tr
 from repomanager.models.repository import Repository
-
-COLOR_PUBLIC = QColor("#1b7f4a")
-COLOR_PRIVATE = QColor("#c62828")
-COLOR_MUTED = QColor("#5c6b76")
-COLOR_NAME = QColor("#1f2a33")
+from repomanager.ui import theme
 
 
 class RepoItemDelegate(QStyledItemDelegate):
@@ -44,11 +40,13 @@ class RepoItemDelegate(QStyledItemDelegate):
         name_font = QFont(option.font)
         name_font.setBold(True)
         painter.setFont(name_font)
-        painter.setPen(COLOR_NAME)
+        painter.setPen(QColor(theme.color("name")))
         painter.drawText(QRect(x, y, w, 18), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, name)
 
         vis = tr("vis.private") if repo.private else tr("vis.public")
-        painter.setPen(COLOR_PRIVATE if repo.private else COLOR_PUBLIC)
+        painter.setPen(
+            QColor(theme.color("private")) if repo.private else QColor(theme.color("public"))
+        )
         meta_font = QFont(option.font)
         meta_font.setPointSize(max(8, option.font.pointSize() - 1))
         meta_font.setBold(True)
@@ -59,7 +57,7 @@ class RepoItemDelegate(QStyledItemDelegate):
             f"{vis}  ·  {tr('list.created')} {repo.format_created()}  ·  {tr('list.updated')} {repo.format_updated()}",
         )
 
-        painter.setPen(COLOR_MUTED)
+        painter.setPen(QColor(theme.color("muted")))
         desc_font = QFont(option.font)
         desc_font.setBold(False)
         desc_font.setPointSize(max(8, option.font.pointSize() - 1))

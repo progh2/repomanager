@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from repomanager.config import app_settings
 from repomanager.i18n import tr
 from repomanager.models.repository import Repository
 from repomanager.ui.repo_item_delegate import RepoItemDelegate
@@ -25,12 +26,26 @@ from repomanager.ui.repo_item_delegate import RepoItemDelegate
 
 SORT_MODES = ("updated_desc", "updated_asc", "created_desc", "created_asc", "name")
 
+KEY_VIS = "filters/visibility"
+KEY_PAGES = "filters/pages"
+KEY_FORK = "filters/fork"
+KEY_SORT = "filters/sort"
+KEY_OWNER = "filters/owner"
+
+
+def _to_index(value: object) -> int:
+    try:
+        return max(0, int(value))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return 0
+
 
 class DualRepoLists(QWidget):
     selection_changed = Signal(int)
     current_repo_changed = Signal(object)  # Repository | None
     archive_requested = Signal(list)
     unarchive_requested = Signal(list)
+    delete_requested = Signal(list)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -133,7 +148,15 @@ class DualRepoLists(QWidget):
         root.addLayout(filters)
         root.addLayout(lists_row, stretch=1)
 
+        for lst in (self.active_list, self.archive_list):
+            shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), lst)
+            shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+            shortcut.activated.connect(self._emit_delete)
+
+        self._pending_owner = ""
+        self._state_ready = False
         self.retranslate_ui()
+        self._restore_state()
         self._update_transfer_buttons()
 
     def retranslate_ui(self) -> None:
@@ -240,7 +263,7 @@ class DualRepoLists(QWidget):
         self._on_selection_changed()
 
     def _rebuild_owner_filter(self) -> None:
-        current = self.owner_filter.currentText()
+        current = self._pending_owner or self.owner_filter.currentText()
         owners = sorted({repo.owner for repo in self._all_repos}, key=str.lower)
         self.owner_filter.blockSignals(True)
         self.owner_filter.clear()
@@ -249,6 +272,45 @@ class DualRepoLists(QWidget):
         index = self.owner_filter.findText(current)
         self.owner_filter.setCurrentIndex(index if index >= 0 else 0)
         self.owner_filter.blockSignals(False)
+        if self._pending_owner and index >= 0:
+            self._pending_owner = ""
+
+    def _restore_state(self) -> None:
+        settings = app_settings()
+        for combo, key in (
+            (self.visibility_filter, KEY_VIS),
+            (self.pages_filter, KEY_PAGES),
+            (self.fork_filter, KEY_FORK),
+        ):
+            index = _to_index(settings.value(key, 0))
+            if 0 <= index < combo.count():
+                combo.blockSignals(True)
+                combo.setCurrentIndex(index)
+                combo.blockSignals(False)
+        sort_mode = str(settings.value(KEY_SORT, "") or "")
+        idx = self.sort_combo.findData(sort_mode)
+        if idx >= 0:
+            self.sort_combo.blockSignals(True)
+            self.sort_combo.setCurrentIndex(idx)
+            self.sort_combo.blockSignals(False)
+        self._pending_owner = str(settings.value(KEY_OWNER, "") or "")
+        self._state_ready = True
+        self._rebuild_lists()
+
+    def _save_state(self) -> None:
+        if not self._state_ready:
+            return
+        settings = app_settings()
+        settings.setValue(KEY_VIS, self.visibility_filter.currentIndex())
+        settings.setValue(KEY_PAGES, self.pages_filter.currentIndex())
+        settings.setValue(KEY_FORK, self.fork_filter.currentIndex())
+        settings.setValue(KEY_SORT, self.sort_combo.currentData() or "")
+        owner = (
+            self.owner_filter.currentText()
+            if self.owner_filter.currentIndex() > 0
+            else ""
+        )
+        settings.setValue(KEY_OWNER, owner)
 
     def _filtered(self) -> list[Repository]:
         query = self.search.text().strip().lower()
@@ -323,6 +385,7 @@ class DualRepoLists(QWidget):
 
         self.active_count.setText(str(active_count))
         self.archive_count.setText(str(archive_count))
+        self._save_state()
         self._on_selection_changed()
 
     def _make_item(self, repo: Repository) -> QListWidgetItem:
@@ -380,6 +443,11 @@ class DualRepoLists(QWidget):
         selected = self.selected_archived()
         if selected:
             self.unarchive_requested.emit(selected)
+
+    def _emit_delete(self) -> None:
+        selected = self.selected_repositories()
+        if selected:
+            self.delete_requested.emit(selected)
 
     def _open_item(self, item: QListWidgetItem) -> None:
         repo = item.data(Qt.ItemDataRole.UserRole)
