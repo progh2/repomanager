@@ -48,6 +48,9 @@ STRINGS: dict[str, dict[str, str]] = {
     "filter.vis_all": {"ko": "모든 공개범위", "en": "All visibility", "ja": "すべての公開範囲"},
     "filter.public": {"ko": "공개", "en": "Public", "ja": "公開"},
     "filter.private": {"ko": "비공개", "en": "Private", "ja": "非公開"},
+    "filter.pages_all": {"ko": "Pages 전체", "en": "Pages: all", "ja": "Pages すべて"},
+    "filter.pages_yes": {"ko": "Pages 있음", "en": "Has Pages", "ja": "Pages あり"},
+    "filter.pages_no": {"ko": "Pages 없음", "en": "No Pages", "ja": "Pages なし"},
     "tip.to_archive": {
         "ko": "선택한 활성 저장소를 아카이브로 이동",
         "en": "Archive selected active repositories",

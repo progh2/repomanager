@@ -48,6 +48,9 @@ class DualRepoLists(QWidget):
         self.visibility_filter = QComboBox()
         self.visibility_filter.currentIndexChanged.connect(self._rebuild_lists)
 
+        self.pages_filter = QComboBox()
+        self.pages_filter.currentIndexChanged.connect(self._rebuild_lists)
+
         self.sort_combo = QComboBox()
         self.sort_combo.currentIndexChanged.connect(self._rebuild_lists)
 
@@ -56,6 +59,7 @@ class DualRepoLists(QWidget):
         filters.addWidget(self.search, stretch=1)
         filters.addWidget(self.owner_filter)
         filters.addWidget(self.visibility_filter)
+        filters.addWidget(self.pages_filter)
         filters.addWidget(self.sort_combo)
 
         self.active_title = QLabel()
@@ -154,6 +158,15 @@ class DualRepoLists(QWidget):
         self.visibility_filter.setCurrentIndex(max(0, vis_index))
         self.visibility_filter.blockSignals(False)
 
+        pages_index = self.pages_filter.currentIndex()
+        self.pages_filter.blockSignals(True)
+        self.pages_filter.clear()
+        self.pages_filter.addItems(
+            [tr("filter.pages_all"), tr("filter.pages_yes"), tr("filter.pages_no")]
+        )
+        self.pages_filter.setCurrentIndex(max(0, pages_index))
+        self.pages_filter.blockSignals(False)
+
         sort_current = self.sort_combo.currentData() or SORT_MODES[0]
         self.sort_combo.blockSignals(True)
         self.sort_combo.clear()
@@ -236,6 +249,11 @@ class DualRepoLists(QWidget):
             if visibility == tr("filter.public") and repo.private:
                 continue
             if visibility == tr("filter.private") and not repo.private:
+                continue
+            pages_mode = self.pages_filter.currentIndex()
+            if pages_mode == 1 and not repo.has_pages:
+                continue
+            if pages_mode == 2 and repo.has_pages:
                 continue
             if query:
                 haystack = f"{repo.full_name} {repo.description}".lower()
