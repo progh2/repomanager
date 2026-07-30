@@ -26,7 +26,23 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 - Python 3.11+
 - GitHub Personal Access Token
 
-## 설치
+## 빠른 실행 (권장)
+
+저장소를 받은 뒤 실행 스크립트 하나로 시작할 수 있습니다.  
+첫 실행 시 자동으로 가상환경(`.venv`)을 만들고 의존성을 설치합니다.
+
+```bash
+# Windows — 더블클릭 또는 터미널에서
+run.bat
+
+# macOS / Linux
+./run.sh
+```
+
+- 의존성만 다시 설치하려면: `run.bat --update` / `./run.sh --update`
+- Python 3.11 이상이 설치되어 있어야 합니다.
+
+## 수동 설치
 
 ```bash
 python -m venv .venv
