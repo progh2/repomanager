@@ -51,6 +51,9 @@ class DualRepoLists(QWidget):
         self.pages_filter = QComboBox()
         self.pages_filter.currentIndexChanged.connect(self._rebuild_lists)
 
+        self.fork_filter = QComboBox()
+        self.fork_filter.currentIndexChanged.connect(self._rebuild_lists)
+
         self.sort_combo = QComboBox()
         self.sort_combo.currentIndexChanged.connect(self._rebuild_lists)
 
@@ -60,6 +63,7 @@ class DualRepoLists(QWidget):
         filters.addWidget(self.owner_filter)
         filters.addWidget(self.visibility_filter)
         filters.addWidget(self.pages_filter)
+        filters.addWidget(self.fork_filter)
         filters.addWidget(self.sort_combo)
 
         self.active_title = QLabel()
@@ -167,6 +171,15 @@ class DualRepoLists(QWidget):
         self.pages_filter.setCurrentIndex(max(0, pages_index))
         self.pages_filter.blockSignals(False)
 
+        fork_index = self.fork_filter.currentIndex()
+        self.fork_filter.blockSignals(True)
+        self.fork_filter.clear()
+        self.fork_filter.addItems(
+            [tr("filter.fork_all"), tr("filter.fork_only"), tr("filter.fork_none")]
+        )
+        self.fork_filter.setCurrentIndex(max(0, fork_index))
+        self.fork_filter.blockSignals(False)
+
         sort_current = self.sort_combo.currentData() or SORT_MODES[0]
         self.sort_combo.blockSignals(True)
         self.sort_combo.clear()
@@ -254,6 +267,11 @@ class DualRepoLists(QWidget):
             if pages_mode == 1 and not repo.has_pages:
                 continue
             if pages_mode == 2 and repo.has_pages:
+                continue
+            fork_mode = self.fork_filter.currentIndex()
+            if fork_mode == 1 and not repo.fork:
+                continue
+            if fork_mode == 2 and repo.fork:
                 continue
             if query:
                 haystack = f"{repo.full_name} {repo.description}".lower()

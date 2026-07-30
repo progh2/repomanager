@@ -51,6 +51,9 @@ STRINGS: dict[str, dict[str, str]] = {
     "filter.pages_all": {"ko": "Pages 전체", "en": "Pages: all", "ja": "Pages すべて"},
     "filter.pages_yes": {"ko": "Pages 있음", "en": "Has Pages", "ja": "Pages あり"},
     "filter.pages_no": {"ko": "Pages 없음", "en": "No Pages", "ja": "Pages なし"},
+    "filter.fork_all": {"ko": "Fork 전체", "en": "Forks: all", "ja": "Fork すべて"},
+    "filter.fork_only": {"ko": "Fork만", "en": "Forks only", "ja": "Fork のみ"},
+    "filter.fork_none": {"ko": "Fork 제외", "en": "Exclude forks", "ja": "Fork を除く"},
     "tip.to_archive": {
         "ko": "선택한 활성 저장소를 아카이브로 이동",
         "en": "Archive selected active repositories",
@@ -324,6 +327,9 @@ STRINGS: dict[str, dict[str, str]] = {
               "削除には <b>delete_repo</b> 権限が必要です。"
               "権限がない場合はヘルプ → 削除権限の案内を参照してください。",
     },
+    "confirm.export_csv": {"ko": "목록 CSV로 저장", "en": "Save list as CSV", "ja": "一覧をCSVで保存"},
+    "confirm.export_done": {"ko": "저장했습니다: {path}", "en": "Saved: {path}", "ja": "保存しました: {path}"},
+    "confirm.export_failed": {"ko": "저장 실패: {exc}", "en": "Save failed: {exc}", "ja": "保存に失敗: {exc}"},
     "confirm.delete_accept": {"ko": "영구 삭제", "en": "Delete permanently", "ja": "完全に削除"},
     "confirm.unarchive_accept": {"ko": "활성으로 복원", "en": "Restore to active", "ja": "アクティブに復元"},
     "confirm.archive_accept": {"ko": "아카이브", "en": "Archive", "ja": "アーカイブ"},
