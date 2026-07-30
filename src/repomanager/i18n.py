@@ -215,6 +215,13 @@ STRINGS: dict[str, dict[str, str]] = {
     },
 
     "status.loading": {"ko": "불러오는 중...", "en": "Loading...", "ja": "読み込み中..."},
+    "status.reading_token": {"ko": "토큰 확인 중...", "en": "Checking token...", "ja": "トークンを確認中..."},
+    "status.authenticating": {"ko": "GitHub 인증 중...", "en": "Authenticating with GitHub...", "ja": "GitHub 認証中..."},
+    "status.loading_for": {
+        "ko": "{login} 저장소 목록을 가져오는 중...",
+        "en": "Fetching repositories for {login}...",
+        "ja": "{login} のリポジトリを取得中...",
+    },
     "status.loaded": {
         "ko": "{login} 저장소 {n}개를 불러왔습니다.",
         "en": "Loaded {n} repositories for {login}.",

@@ -25,6 +25,7 @@ from repomanager.services.github_client import RateLimitInfo
 from repomanager.ui.about_dialog import AboutDialog
 from repomanager.ui.confirm_dialog import ConfirmDialog
 from repomanager.ui.dual_repo_lists import DualRepoLists
+from repomanager.ui.loading_overlay import LoadingOverlay
 from repomanager.ui.repo_detail_panel import RepoDetailPanel
 from repomanager.ui.settings_dialog import SettingsDialog
 from repomanager.workers.api_worker import (
@@ -70,6 +71,7 @@ class MainWindow(QMainWindow):
         self.repo_lists.unarchive_requested.connect(
             lambda repos: self._confirm_action("unarchive", repos)
         )
+        self._loading = LoadingOverlay(self.repo_lists)
 
         self.detail = RepoDetailPanel()
         self.detail.save_description_requested.connect(self._save_description)
@@ -236,15 +238,18 @@ class MainWindow(QMainWindow):
         if self._busy:
             return
         self._set_busy(True, status=tr("status.loading"))
+        self._loading.start(tr("status.loading"))
 
         worker = ListReposWorker()
         worker.signals.status.connect(self._set_status)
+        worker.signals.status.connect(self._loading.set_text)
         worker.signals.error.connect(self._on_load_error)
         worker.signals.finished.connect(self._on_load_finished)
         self._pool.start(worker)
 
     def _on_load_finished(self, result: object) -> None:
         assert isinstance(result, LoadResult)
+        self._loading.stop()
         self.repo_lists.set_repositories(result.repositories)
         self.detail.set_repository(None)
         self._update_rate_limit(result.rate_limit)
@@ -255,6 +260,7 @@ class MainWindow(QMainWindow):
         self._set_action_buttons_enabled(True)
 
     def _on_load_error(self, message: str) -> None:
+        self._loading.stop()
         self._set_busy(False, status=tr("status.load_failed"))
         self._set_action_buttons_enabled(True)
         QMessageBox.critical(self, tr("err.github_title"), message)

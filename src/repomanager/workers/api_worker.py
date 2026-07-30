@@ -62,19 +62,19 @@ class ListReposWorker(QRunnable):
     @Slot()
     def run(self) -> None:
         try:
-            self.signals.status.emit("Reading token...")
+            self.signals.status.emit(tr("status.reading_token"))
             token = get_github_token()
             client = GitHubClient(token)
-            self.signals.status.emit("Authenticating...")
+            self.signals.status.emit(tr("status.authenticating"))
             login = client.verify()
-            self.signals.status.emit(f"Loading repositories for {login}...")
+            self.signals.status.emit(tr("status.loading_for", login=login))
             repos: list[Repository] = client.list_repositories()
             rate = None
             try:
                 rate = client.get_rate_limit()
             except GitHubClientError:
                 rate = None
-            self.signals.status.emit(f"Loaded {len(repos)} repositories.")
+            self.signals.status.emit(tr("status.loaded", login=login, n=len(repos)))
             self.signals.finished.emit(
                 LoadResult(repositories=repos, login=login, rate_limit=rate)
             )
