@@ -56,6 +56,20 @@ excludes = [
     "pydoc_data",
 ]
 
+if IS_MACOS:
+    # cryptography's _rust extension links against libssl, and the libssl that
+    # gets bundled on the Intel runner is older than the symbols it needs:
+    #   Symbol not found: _SSL_get0_group_name ... Expected in: libssl.3.dylib
+    # Nothing here uses cryptography. It arrives via PyGithub -> pyjwt[crypto],
+    # which is only needed for GitHub App (JWT) auth; this app authenticates with
+    # personal access tokens and OAuth device flow. PyJWT guards the import with
+    # `except ModuleNotFoundError` and degrades to has_crypto = False.
+    #
+    # macOS only: on Linux the SecretService keyring backend needs cryptography
+    # (via secretstorage), and dropping it there would silently downgrade token
+    # storage to plaintext QSettings.
+    excludes += ["cryptography"]
+
 a = Analysis(  # noqa: F821
     [str(SRC / "repomanager" / "__main__.py")],
     pathex=[str(SRC)],
