@@ -26,6 +26,11 @@ KEY_LAST_UPDATE_CHECK = "updates/last_check"
 
 AUTO_UPDATE_INTERVAL_HOURS = 24
 
+# RepoManager's own OAuth App. Device-flow client IDs are public by design —
+# there is no client secret involved — so shipping it lets users sign in with
+# one click instead of registering an OAuth App of their own.
+DEFAULT_OAUTH_CLIENT_ID = "Ov23liRHfp0OOG809Gbj"
+
 KEYRING_SERVICE = "RepoManager"
 KEYRING_USER = "github_token"
 
@@ -138,12 +143,18 @@ def clear_saved_token() -> None:
     set_saved_token("")
 
 
-def get_oauth_client_id() -> str:
+def get_custom_oauth_client_id() -> str:
+    """A client ID the user supplied, if they registered their own OAuth App."""
     load_config()
     env_id = (os.getenv("GITHUB_OAUTH_CLIENT_ID") or "").strip()
     if env_id:
         return env_id
     return str(app_settings().value(KEY_CLIENT_ID, "") or "").strip()
+
+
+def get_oauth_client_id() -> str:
+    """The client ID to sign in with: the user's own, else the built-in one."""
+    return get_custom_oauth_client_id() or DEFAULT_OAUTH_CLIENT_ID
 
 
 def set_oauth_client_id(client_id: str) -> None:

@@ -172,9 +172,19 @@
       <div class="body">
         <p>내 저장소를 불러오려면 GitHub 계정 연결이 한 번 필요합니다.
         앱을 처음 켜면 설정 창을 안내해 줍니다.</p>
-        <p>가장 쉬운 방법은 <b>파일 → 설정</b>에서 개인 접근 토큰(Personal Access Token)을 붙여넣는 것입니다.
-        저장소를 <b>삭제</b>까지 하려면 토큰에 <code>delete_repo</code> 권한이 필요합니다.
-        자세한 안내는 <a href="https://github.com/progh2/repomanager#github-인증">README</a>에 있습니다.</p>
+        <ol>
+          <li><b>파일 → 설정</b>을 엽니다.</li>
+          <li><b>GitHub 웹으로 로그인</b> 버튼을 누릅니다.</li>
+          <li>브라우저가 열리면 화면에 나온 <b>코드를 입력</b>하고 <b>Authorize</b>를 누릅니다.</li>
+        </ol>
+        <p class="note">
+          토큰을 직접 만들 필요도, GitHub CLI 같은 프로그램을 따로 설치할 필요도 없습니다.
+          로그인 한 번이면 됩니다.
+        </p>
+        <p style="font-size:14.5px;color:var(--ink-soft)">
+          토큰을 직접 넣고 싶다면 같은 설정 창에서 Personal Access Token을 붙여넣어도 됩니다.
+          자세한 내용은 <a href="https://github.com/progh2/repomanager#github-인증">README</a>를 보세요.
+        </p>
       </div>
     </details>
 
