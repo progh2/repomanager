@@ -48,6 +48,14 @@ datas += shiboken_datas
 binaries = list(shiboken_binaries)
 hiddenimports += [*shiboken_hidden, "shiboken6"]
 
+# PyNaCl (pulled in by PyGithub) loads the cffi C extension at import time.
+# It normally rides along with PyInstaller's cryptography hook, so name it
+# explicitly — the macOS build excludes cryptography below.
+cffi_datas, cffi_binaries, cffi_hidden = collect_all("cffi")
+datas += cffi_datas
+binaries += cffi_binaries
+hiddenimports += [*cffi_hidden, "_cffi_backend"]
+
 # Only non-Qt extras are excluded. PyInstaller already collects just the Qt modules
 # this app imports, and hand-excluding PySide6 submodules risks breaking that graph.
 excludes = [
