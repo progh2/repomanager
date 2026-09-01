@@ -220,7 +220,9 @@ git clone repository.git restored-folder
 ### 1) GitHub Actions (권장)
 
 로컬에 Windows·macOS·Linux를 다 갖출 필요 없이
-`.github/workflows/release.yml`이 4개 플랫폼을 GitHub 러너에서 빌드합니다.
+`.github/workflows/release.yml`이 4개 플랫폼을 GitHub 러너에서 빌드합니다
+(`ubuntu-22.04`, `windows-latest`, `macos-15`, `macos-15-intel`).
+Linux는 glibc 호환 범위를 넓히려고 일부러 오래된 이미지를 씁니다.
 **자동 업데이트가 이 릴리스를 읽습니다.**
 
 #### 최초 1회 저장소 설정
