@@ -24,6 +24,7 @@ from repomanager import __version__
 from repomanager.config import (
     clear_saved_token,
     get_auto_update_check,
+    get_custom_oauth_client_id,
     get_oauth_client_id,
     get_saved_token,
     get_use_gh_cli,
@@ -189,29 +190,41 @@ class SettingsDialog(QDialog):
         gh_note.setWordWrap(True)
         gh_layout.addWidget(gh_note)
 
-        # --- Device Flow ---
-        self.client_id_edit = QLineEdit()
-        self.client_id_edit.setPlaceholderText("OAuth App Client ID")
-        self.client_id_edit.setText(get_oauth_client_id())
+        # --- Device Flow (the recommended path: no PAT, no gh CLI) ---
+        intro = QLabel(tr("settings.oauth_intro"))
+        intro.setWordWrap(True)
 
         self.device_status = QLabel("")
         self.device_status.setWordWrap(True)
 
         login_btn = QPushButton(tr("settings.login_web"))
+        login_btn.setObjectName("primaryBtn")
         login_btn.clicked.connect(self._start_device_flow)
         self.cancel_login_btn = QPushButton(tr("settings.cancel_login"))
         self.cancel_login_btn.setEnabled(False)
         self.cancel_login_btn.clicked.connect(self._cancel_device_flow)
 
         login_row = QHBoxLayout()
-        login_row.addWidget(login_btn)
+        login_row.addWidget(login_btn, stretch=1)
         login_row.addWidget(self.cancel_login_btn)
 
+        # Own-OAuth-App support stays available, just out of the way.
+        custom_id = get_custom_oauth_client_id()
+        self.use_custom_oauth = QCheckBox(tr("settings.oauth_custom"))
+        self.use_custom_oauth.setChecked(bool(custom_id))
+        self.client_id_edit = QLineEdit()
+        self.client_id_edit.setPlaceholderText("OAuth App Client ID")
+        self.client_id_edit.setText(custom_id)
+        self.client_id_edit.setVisible(bool(custom_id))
+        self.use_custom_oauth.toggled.connect(self.client_id_edit.setVisible)
+
         oauth_box = QGroupBox(tr("settings.oauth_box"))
-        oauth_layout = QFormLayout(oauth_box)
-        oauth_layout.addRow("Client ID", self.client_id_edit)
-        oauth_layout.addRow(login_row)
-        oauth_layout.addRow(self.device_status)
+        oauth_layout = QVBoxLayout(oauth_box)
+        oauth_layout.addWidget(intro)
+        oauth_layout.addLayout(login_row)
+        oauth_layout.addWidget(self.device_status)
+        oauth_layout.addWidget(self.use_custom_oauth)
+        oauth_layout.addWidget(self.client_id_edit)
 
         help_browser = QTextBrowser()
         help_browser.setOpenExternalLinks(True)
@@ -231,11 +244,11 @@ class SettingsDialog(QDialog):
         layout.addWidget(self.source_label)
         layout.addWidget(lang_box)
         layout.addWidget(update_box)
+        layout.addWidget(oauth_box)
+        layout.addWidget(help_browser)
         layout.addWidget(guide)
         layout.addWidget(pat_box)
         layout.addWidget(gh_box)
-        layout.addWidget(oauth_box)
-        layout.addWidget(help_browser)
         layout.addWidget(clear_btn)
         layout.addWidget(buttons)
 
@@ -278,11 +291,15 @@ class SettingsDialog(QDialog):
         QMessageBox.information(self, tr("settings.title"), tr("settings.cleared"))
 
     def _start_device_flow(self) -> None:
-        client_id = self.client_id_edit.text().strip()
-        if not client_id:
-            QMessageBox.warning(self, tr("oauth.title"), tr("oauth.need_client_id"))
-            return
-        set_oauth_client_id(client_id)
+        if self.use_custom_oauth.isChecked():
+            client_id = self.client_id_edit.text().strip()
+            if not client_id:
+                QMessageBox.warning(self, tr("oauth.title"), tr("oauth.need_client_id"))
+                return
+            set_oauth_client_id(client_id)
+        else:
+            set_oauth_client_id("")
+            client_id = get_oauth_client_id()
         self.cancel_login_btn.setEnabled(True)
         self.device_status.setText(tr("oauth.starting"))
 
@@ -316,7 +333,9 @@ class SettingsDialog(QDialog):
         )
 
     def _save_and_accept(self) -> None:
-        set_oauth_client_id(self.client_id_edit.text())
+        set_oauth_client_id(
+            self.client_id_edit.text() if self.use_custom_oauth.isChecked() else ""
+        )
         set_use_gh_cli(self.use_gh.isChecked())
         set_saved_token(self.token_edit.text())
         set_auto_update_check(self.auto_update.isChecked())

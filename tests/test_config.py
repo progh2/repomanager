@@ -37,3 +37,14 @@ def test_get_github_token_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     ):
         with pytest.raises(config.ConfigError):
             config.get_github_token()
+
+
+def test_oauth_client_id_falls_back_to_the_built_in_app() -> None:
+    """Users should not have to register an OAuth App just to sign in."""
+    with patch("repomanager.config.get_custom_oauth_client_id", return_value=""):
+        assert config.get_oauth_client_id() == config.DEFAULT_OAUTH_CLIENT_ID
+
+
+def test_custom_oauth_client_id_wins() -> None:
+    with patch("repomanager.config.get_custom_oauth_client_id", return_value="Ov23custom"):
+        assert config.get_oauth_client_id() == "Ov23custom"

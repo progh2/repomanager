@@ -525,23 +525,27 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Default gh login usually lacks delete_repo. Copy and run the command above, then import again.",
         "ja": "既定の gh ログインには通常 delete_repo がありません。上のコマンドを実行してから再取得してください。",
     },
+    "settings.oauth_intro": {
+        "ko": "가장 간단한 방법입니다. 버튼을 누르고 브라우저에 코드만 입력하세요.",
+        "en": "The simplest way in. Click the button and enter the code in your browser.",
+        "ja": "いちばん簡単な方法です。ボタンを押してブラウザにコードを入力してください。",
+    },
+    "settings.oauth_custom": {
+        "ko": "내가 만든 OAuth App 사용 (선택)",
+        "en": "Use my own OAuth App (optional)",
+        "ja": "自分で作成した OAuth App を使う (任意)",
+    },
     "settings.oauth_box": {
-        "ko": "웹 로그인 (OAuth Device Flow)",
-        "en": "Web sign-in (OAuth Device Flow)",
-        "ja": "ウェブログイン (OAuth Device Flow)",
+        "ko": "GitHub으로 로그인 (권장)",
+        "en": "Sign in with GitHub (recommended)",
+        "ja": "GitHub でログイン (推奨)",
     },
     "settings.login_web": {"ko": "GitHub 웹으로 로그인", "en": "Sign in with GitHub", "ja": "GitHub ウェブでログイン"},
     "settings.cancel_login": {"ko": "로그인 취소", "en": "Cancel sign-in", "ja": "ログインをキャンセル"},
     "settings.oauth_help_html": {
-        "ko": "웹 로그인은 <a href='https://github.com/settings/developers'>OAuth App</a>의 "
-              "Client ID가 필요합니다. Device Flow를 켠 뒤 Client ID만 입력하세요. "
-              "Client Secret은 앱에 넣지 마세요.",
-        "en": "Web sign-in needs a Client ID from an "
-              "<a href='https://github.com/settings/developers'>OAuth App</a>. "
-              "Enable Device Flow, then enter only the Client ID. Never put the Client Secret in the app.",
-        "ja": "ウェブログインには <a href='https://github.com/settings/developers'>OAuth App</a> の "
-              "Client ID が必要です。Device Flow を有効にして Client ID のみ入力してください。"
-              "Client Secret はアプリに入れないでください。",
+        "ko": "버튼을 누르면 브라우저가 열립니다. 화면에 나온 코드를 입력하고 <b>Authorize</b>를 누르면 끝입니다. 토큰을 직접 만들 필요도, GitHub CLI를 설치할 필요도 없습니다. 요청 권한: <code>repo</code>, <code>delete_repo</code>, <code>read:org</code>.",
+        "en": "The button opens your browser. Enter the code shown and click <b>Authorize</b> — that's it. No token to create, no GitHub CLI to install. Requested scopes: <code>repo</code>, <code>delete_repo</code>, <code>read:org</code>.",
+        "ja": "ボタンを押すとブラウザが開きます。表示されたコードを入力して <b>Authorize</b> を押すだけです。トークンの作成も GitHub CLI のインストールも不要です。要求スコープ: <code>repo</code>, <code>delete_repo</code>, <code>read:org</code>.",
     },
     "settings.clear_token": {"ko": "저장된 토큰 지우기", "en": "Clear saved token", "ja": "保存済みトークンを消去"},
     "settings.copied_title": {"ko": "복사됨", "en": "Copied", "ja": "コピーしました"},

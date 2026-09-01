@@ -74,8 +74,10 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 
 - 실행파일로 쓸 때는 Python이 필요 없습니다.
 - 소스에서 실행할 때: Python 3.11+
-- GitHub 토큰 (PAT 또는 `gh` / OAuth)
-- ZIP 전체 브랜치 백업 시: **Git**이 PATH에 있어야 함
+- GitHub 계정 (앱에서 로그인 버튼으로 연결 — 토큰을 직접 만들 필요 없음)
+- `gh` CLI: **불필요** (설치돼 있으면 토큰을 가져올 수 있는 편의 기능일 뿐)
+- `git`: ZIP 백업에 **브랜치·커밋까지** 담고 싶을 때만 필요.
+  없으면 이슈·마일스톤 메타데이터만 백업합니다.
 
 ## 소스에서 실행
 
@@ -116,20 +118,29 @@ GITHUB_OAUTH_CLIENT_ID=Iv1...   # 웹 로그인용(선택)
 
 ## GitHub 인증
 
-우선순위: 환경변수(`.env`) → 설정에 저장한 토큰 → GitHub CLI(`gh`).
+### 1) GitHub으로 로그인 (권장)
 
-### 1) 설정 메뉴 (권장)
+**파일 → 설정** (`Ctrl+,`) → **GitHub 웹으로 로그인**
 
-**파일 → 설정** (`Ctrl+,`)
+버튼을 누르면 브라우저가 열립니다. 화면에 나온 코드를 입력하고 Authorize를 누르면 끝입니다.
+**토큰을 직접 만들 필요도, `gh` CLI를 설치할 필요도 없습니다.**
+요청 권한은 `repo`, `delete_repo`, `read:org`입니다.
 
-- Personal Access Token 붙여넣기 후 저장
-- 또는 **GitHub CLI에서 가져오기**
-- 또는 **GitHub 웹으로 로그인** (OAuth Device Flow)
+앱에 RepoManager의 OAuth App Client ID가 내장돼 있습니다.
+Device Flow의 Client ID는 공개 정보라(Client Secret을 쓰지 않습니다) 소스에 포함해도 안전합니다.
+직접 만든 OAuth App을 쓰고 싶다면 설정에서 **내가 만든 OAuth App 사용**을 체크하세요.
+
+### 2) 토큰을 직접 넣기
+
+설정 창에서 Personal Access Token을 붙여넣거나, **GitHub CLI에서 가져오기**를 쓸 수 있습니다.
+`gh` CLI는 **선택 사항**입니다 — 설치돼 있지 않아도 앱은 정상 동작합니다.
+
+토큰 우선순위: 환경변수(`.env`) → 설정에 저장한 토큰 → GitHub CLI(`gh`).
 
 토큰은 Windows Credential Manager / macOS Keychain / Linux Secret Service에 `keyring`으로 저장됩니다.  
 keyring을 쓸 수 없으면 Qt `QSettings`로 대체됩니다.
 
-### 2) Classic PAT 권한
+### 3) Classic PAT 권한
 
 | 작업 | 필요 권한 |
 |------|-----------|
@@ -139,7 +150,7 @@ keyring을 쓸 수 없으면 Qt `QSettings`로 대체됩니다.
 
 Fine-grained PAT는 대상 저장소에 **Administration: Read and write**(삭제·이름 변경 등)가 필요할 수 있습니다.
 
-### 3) GitHub CLI로 삭제 권한
+### 4) GitHub CLI로 삭제 권한
 
 ```bash
 gh auth refresh -h github.com -s delete_repo
@@ -147,14 +158,14 @@ gh auth refresh -h github.com -s delete_repo
 
 이후 설정에서 CLI 토큰을 다시 가져오세요. 삭제가 403이면 **도움말 → 삭제 권한 안내**를 참고하세요.
 
-### 4) 웹 로그인 (OAuth Device Flow)
+### 5) 직접 만든 OAuth App 쓰기 (선택)
+
+내장 Client ID 대신 자기 것을 쓰려면:
 
 1. https://github.com/settings/developers → **New OAuth App**
-2. Homepage: `https://github.com/progh2/repomanager`, Callback: `http://127.0.0.1`
-3. Device Flow 활성화 후 **Client ID만** 설정에 입력 (Client Secret은 넣지 마세요)
-4. 설정에서 웹 로그인 → 브라우저에 코드 입력
-
-요청 스코프: `repo`, `delete_repo`, `read:org`
+2. Callback: `http://127.0.0.1`, 생성 후 **Enable device flow** 체크
+3. 설정에서 **내가 만든 OAuth App 사용**을 켜고 **Client ID만** 입력
+   (Client Secret은 넣지 마세요)
 
 ## 사용 방법
 
