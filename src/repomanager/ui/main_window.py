@@ -25,9 +25,11 @@ from repomanager.config import (
     ConfigError,
     app_settings,
     auto_update_check_due,
+    get_auto_update_check,
     get_github_token,
     get_skipped_update_version,
     mark_update_checked,
+    set_auto_update_check,
     token_source_label,
 )
 from repomanager.models.repository import Repository
@@ -82,6 +84,7 @@ class MainWindow(QMainWindow):
         self._delete_help_action = None
         self._about_action = None
         self._update_action = None
+        self._auto_update_action = None
         self._update_check_manual = False
 
         self._build_menu()
@@ -211,6 +214,8 @@ class MainWindow(QMainWindow):
             self._delete_help_action.setText(tr("menu.delete_help"))
         if self._update_action is not None:
             self._update_action.setText(tr("menu.check_update"))
+        if self._auto_update_action is not None:
+            self._auto_update_action.setText(tr("menu.auto_update"))
         if self._about_action is not None:
             self._about_action.setText(tr("menu.about"))
         self.refresh_btn.setText(tr("btn.refresh"))
@@ -258,6 +263,11 @@ class MainWindow(QMainWindow):
         self._update_action = QAction(tr("menu.check_update"), self)
         self._update_action.triggered.connect(lambda: self.check_for_updates(manual=True))
         self._help_menu.addAction(self._update_action)
+        self._auto_update_action = QAction(tr("menu.auto_update"), self)
+        self._auto_update_action.setCheckable(True)
+        self._auto_update_action.setChecked(get_auto_update_check())
+        self._auto_update_action.toggled.connect(set_auto_update_check)
+        self._help_menu.addAction(self._auto_update_action)
         self._about_action = QAction(tr("menu.about"), self)
         self._about_action.triggered.connect(self.show_about)
         self._help_menu.addAction(self._about_action)

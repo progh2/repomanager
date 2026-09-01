@@ -210,8 +210,8 @@ git clone repository.git restored-folder
 실행파일로 설치한 경우 앱이 스스로 최신 릴리스로 갈아탑니다.
 
 - **자동 확인** — 시작 후 잠시 뒤, 하루에 한 번 GitHub Releases를 확인합니다.
-- **수동 확인** — **도움말 → 업데이트 확인** 또는 **설정 → 업데이트 → 지금 확인**
-- **끄기** — **설정 → 업데이트**에서 자동 확인 체크 해제
+- **수동 확인** — **도움말 → 업데이트 확인**
+- **끄기** — **도움말 → 시작할 때 자동으로 확인** 체크 해제
 - 업데이트 창에서 변경 사항을 확인하고 **다운로드 후 설치**를 누르면
   내려받기 → `SHA256SUMS.txt` 검증 → 앱 종료 → 교체 → 자동 재시작 순으로 진행됩니다.
 - 특정 버전을 넘기려면 **이 버전 건너뛰기**를 누르세요 (자동 확인에서만 무시).
@@ -381,7 +381,7 @@ src/repomanager/
     repo_detail_panel.py    # 설명·공개여부·이름 변경·백업
     confirm_dialog.py       # DELETE 입력, CSV 내보내기
     rename_dialog.py        # RENAME 입력
-    settings_dialog.py      # 토큰·언어·테마·업데이트
+    settings_dialog.py      # 토큰·언어·테마
     update_dialog.py        # 변경 사항·다운로드·설치
     about_dialog.py
     loading_overlay.py
