@@ -27,8 +27,12 @@ Windows, macOS, Linux에서 동작합니다 (PySide6).
 미서명 빌드라 첫 실행 시 경고가 나옵니다.
 
 - **Windows**: SmartScreen → *추가 정보* → *실행*
-- **macOS**: `RepoManager.app` 우클릭 → *열기* → *열기*
-  (또는 `xattr -dr com.apple.quarantine /Applications/RepoManager.app`)
+- **macOS**: 앱을 한 번 실행해 차단당한 뒤,
+  **시스템 설정 → 개인정보 보호 및 보안**을 열고 아래쪽의 **확인 없이 열기**를 누릅니다.
+  (터미널이 편하면 `xattr -dr com.apple.quarantine /Applications/RepoManager.app`)
+
+  > macOS 15(Sequoia)부터 **우클릭 → 열기** 우회가 제거되어 위 방법을 써야 합니다.
+  > macOS 14 이하에서는 우클릭 → *열기* → *열기* 도 됩니다.
 - **Linux**: `chmod +x RepoManager-*-linux-x86_64`
 
 설치 후에는 앱이 스스로 새 버전을 확인하고 업데이트합니다 (아래 참조).
