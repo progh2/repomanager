@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepoManager — 쌓여만 가는 GitHub 저장소, 한 번에 정리하세요</title>
+<meta name="description" content="수업·실습으로 쌓인 GitHub 저장소를 한눈에 보고 백업·아카이브·삭제하는 무료 데스크톱 앱. Windows·macOS·Linux 지원, 설치 후 바로 실행.">
+<link rel="icon" href="icon.png">
+<meta property="og:title" content="RepoManager — GitHub 저장소 정리 도구">
+<meta property="og:description" content="수백 개로 불어난 GitHub 저장소를 안전하게 백업하고 정리하세요. 내려받아 바로 실행.">
+<meta property="og:image" content="screenshot.png">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="nav">
+      <img src="icon.png" alt="">
+      <b>RepoManager</b>
+      <span class="spacer"></span>
+      <a href="#features">기능</a>
+      <a href="#install">설치</a>
+      <a href="https://github.com/progh2/repomanager">GitHub</a>
+    </nav>
+
+    <div class="hero-grid">
+      <div>
+        <h1>쌓여만 가는 GitHub 저장소,<br><span class="hl">한 번에 정리</span>하세요</h1>
+        <p class="lead">
+          수업이 끝날 때마다, 실습이 끝날 때마다 저장소가 하나씩 늘어납니다.
+          어느새 수백 개. 웹에서 하나씩 지우기엔 너무 많죠.<br>
+          RepoManager는 <b>전부 한 화면에 펼쳐놓고</b>, 필요한 것만 골라
+          백업하고 정리하는 프로그램입니다.
+        </p>
+
+        <div class="dl-card">
+          <a class="btn" id="mainBtn" href="https://github.com/progh2/repomanager/releases/latest">
+            <span id="mainBtnText">내려받기</span>
+          </a>
+          <small class="btn-sub" id="mainSub">무료 · 오픈소스 · 설치 프로그램 없이 바로 실행</small>
+          <div class="others" id="others"></div>
+        </div>
+      </div>
+
+      <div class="hero-art">
+        <img class="mascot" src="mascot.svg" alt="상자를 안고 있는 문어고양이 마스코트">
+      </div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>이런 적 있으신가요?</h2>
+    <p class="sub">저장소가 많아지면 정리 자체가 일이 됩니다.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="emoji">🗂️</div>
+        <h3>뭐가 뭔지 모르겠어요</h3>
+        <p>이름만 봐서는 언제 만든 어떤 수업인지 기억나지 않습니다. 설명도 대부분 비어 있고요.</p>
+      </div>
+      <div class="card">
+        <div class="emoji">😰</div>
+        <h3>지우기가 무서워요</h3>
+        <p>혹시 필요한 게 섞여 있을까 봐 못 지웁니다. 한 번 지우면 되돌릴 수 없으니까요.</p>
+      </div>
+      <div class="card">
+        <div class="emoji">🐌</div>
+        <h3>하나씩은 너무 느려요</h3>
+        <p>웹에서 저장소 하나 지우는 데 클릭 예닐곱 번. 200개면 하루가 갑니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="features">
+  <div class="wrap">
+    <h2>그래서 이렇게 만들었습니다</h2>
+    <p class="sub">보고, 고르고, 안전하게 정리하는 세 단계면 끝납니다.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="emoji">👀</div>
+        <h3>전부 한눈에</h3>
+        <p>활성과 아카이브를 좌우로 나눠 보여줍니다. 이름·설명·날짜로 검색하고, 공개 여부나 Fork 여부로 걸러내세요.</p>
+      </div>
+      <div class="card">
+        <div class="emoji">📦</div>
+        <h3>지우기 전에 통째로 백업</h3>
+        <p>모든 브랜치와 태그는 물론 이슈·마일스톤까지 ZIP 하나로 저장합니다. 나중에 언제든 되살릴 수 있습니다.</p>
+      </div>
+      <div class="card">
+        <div class="emoji">✨</div>
+        <h3>여러 개를 한 번에</h3>
+        <p>체크해서 한꺼번에 아카이브하거나 삭제합니다. 설명 수정, 공개/비공개 전환, 이름 변경도 앱 안에서 끝냅니다.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:36px">
+      <img class="shot" src="screenshot.png" alt="RepoManager 실행 화면">
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>실수로 지우는 일은 없도록</h2>
+    <p class="sub">되돌릴 수 없는 작업이라 안전장치를 여러 겹 뒀습니다.</p>
+    <ul class="safe-list">
+      <li><span class="tick">✓</span><div><b>삭제 전 확인 창</b><span class="d">지울 목록을 전부 보여주고, <code>DELETE</code>를 직접 입력해야 진행됩니다.</span></div></li>
+      <li><span class="tick">✓</span><div><b>백업 먼저</b><span class="d">확인 창에서 바로 ZIP 백업이나 CSV 목록 내보내기를 할 수 있습니다.</span></div></li>
+      <li><span class="tick">✓</span><div><b>아카이브는 되돌릴 수 있어요</b><span class="d">지우기 애매하면 일단 아카이브로. 언제든 다시 활성으로 되돌립니다.</span></div></li>
+      <li><span class="tick">✓</span><div><b>토큰은 안전하게</b><span class="d">GitHub 토큰은 운영체제의 자격 증명 저장소에 보관합니다.</span></div></li>
+    </ul>
+  </div>
+</section>
+
+<section class="alt" id="install">
+  <div class="wrap">
+    <h2>설치하고 실행하기</h2>
+    <p class="sub">내려받은 파일을 두 번 누르면 끝입니다. 압축을 풀 필요도, 파이썬을 설치할 필요도 없습니다.</p>
+
+    <details open>
+      <summary>Windows</summary>
+      <div class="body">
+        <p><code>.exe</code> 파일을 내려받아 두 번 누르면 실행됩니다.</p>
+        <p>처음 실행할 때 <b>“Windows의 PC 보호”</b> 파란 창이 뜰 수 있습니다.
+        개발자 서명을 받지 않은 프로그램이라 그렇습니다.
+        <b>추가 정보</b> → <b>실행</b>을 누르면 됩니다.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>macOS</summary>
+      <div class="body">
+        <p><code>.dmg</code> 파일을 두 번 누르면 창이 열립니다.
+        <b>RepoManager 아이콘을 옆의 Applications 폴더로 끌어다 놓으세요.</b></p>
+        <p>처음 실행할 때 “확인되지 않은 개발자” 경고가 나오면,
+        응용 프로그램 폴더에서 <b>아이콘을 오른쪽 클릭 → 열기 → 열기</b>를 누르세요.
+        한 번만 하면 다음부터는 그냥 실행됩니다.</p>
+        <p class="note">
+          내 Mac에 맞는 파일이 뭔지 모르겠다면: 화면 왼쪽 위 <b>사과 메뉴 → 이 Mac에 관하여</b>를 열어
+          <b>칩</b>이 <b>Apple M1/M2/M3…</b>이면 <b>Apple 실리콘</b>,
+          <b>Intel</b>이라고 쓰여 있으면 <b>인텔</b>을 받으세요.
+        </p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Linux</summary>
+      <div class="body">
+        <p>내려받은 파일에 실행 권한을 준 뒤 실행합니다.</p>
+        <p><code>chmod +x RepoManager-*-linux-x86_64 &amp;&amp; ./RepoManager-*-linux-x86_64</code></p>
+        <p>파일 관리자에서 <b>속성 → 권한 → 실행 허용</b>을 체크한 뒤 두 번 눌러도 됩니다.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>실행한 다음에는? (GitHub 로그인)</summary>
+      <div class="body">
+        <p>내 저장소를 불러오려면 GitHub 계정 연결이 한 번 필요합니다.
+        앱을 처음 켜면 설정 창을 안내해 줍니다.</p>
+        <p>가장 쉬운 방법은 <b>파일 → 설정</b>에서 개인 접근 토큰(Personal Access Token)을 붙여넣는 것입니다.
+        저장소를 <b>삭제</b>까지 하려면 토큰에 <code>delete_repo</code> 권한이 필요합니다.
+        자세한 안내는 <a href="https://github.com/progh2/repomanager#github-인증">README</a>에 있습니다.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>업데이트는 어떻게 하나요?</summary>
+      <div class="body">
+        <p>따로 하실 일이 없습니다. 새 버전이 나오면 앱이 알아서 알려주고,
+        <b>다운로드 후 설치</b>를 누르면 스스로 최신 버전으로 바뀐 뒤 다시 켜집니다.</p>
+        <p>직접 확인하려면 <b>도움말 → 업데이트 확인</b>을 누르세요.
+        알림이 번거로우면 <b>설정 → 업데이트</b>에서 끌 수 있습니다.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section>
+  <div class="wrap" style="text-align:center">
+    <img class="mascot" src="mascot.svg" alt="" style="max-width:150px;margin-bottom:8px">
+    <h2>이제 정리해 볼까요?</h2>
+    <p class="sub">무료입니다. 계정을 만들 필요도 없습니다.</p>
+    <div style="max-width:420px;margin:0 auto">
+      <a class="btn" id="mainBtn2" href="https://github.com/progh2/repomanager/releases/latest">내려받기</a>
+      <small class="btn-sub" id="mainSub2">MIT 라이선스 오픈소스</small>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <b style="color:#fff">RepoManager</b><br>
+      GitHub 저장소를 정리하는 데스크톱 앱 · MIT License
+    </div>
+    <div>
+      <a href="https://github.com/progh2/repomanager">소스 코드</a> ·
+      <a href="https://github.com/progh2/repomanager/releases">모든 버전</a> ·
+      <a href="https://github.com/progh2/repomanager/issues">문제 신고</a>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:22px;font-size:13.5px;opacity:.75">
+    저장소 삭제·아카이브·공개 범위 변경 등 이 프로그램을 사용해 발생하는 결과는 사용자 본인의 책임입니다.
+    되돌릴 수 없는 작업은 백업 후 진행해 주세요.
+  </div>
+</footer>
+
+<script src="download.js"></script>
+</body>
+</html>

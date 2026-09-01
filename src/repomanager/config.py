@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,6 +20,11 @@ SETTINGS_APP = "RepoManager"
 KEY_TOKEN = "github/token"
 KEY_CLIENT_ID = "github/oauth_client_id"
 KEY_USE_GH_CLI = "github/use_gh_cli"
+KEY_AUTO_UPDATE = "updates/auto_check"
+KEY_SKIPPED_VERSION = "updates/skipped_version"
+KEY_LAST_UPDATE_CHECK = "updates/last_check"
+
+AUTO_UPDATE_INTERVAL_HOURS = 24
 
 KEYRING_SERVICE = "RepoManager"
 KEYRING_USER = "github_token"
@@ -161,6 +167,52 @@ def set_use_gh_cli(enabled: bool) -> None:
     settings = app_settings()
     settings.setValue(KEY_USE_GH_CLI, enabled)
     settings.sync()
+
+
+def get_auto_update_check() -> bool:
+    """Whether to look for a new release shortly after launch."""
+    value = app_settings().value(KEY_AUTO_UPDATE, True)
+    if isinstance(value, str):
+        return value.lower() in {"true", "1", "yes"}
+    return bool(value)
+
+
+def set_auto_update_check(enabled: bool) -> None:
+    settings = app_settings()
+    settings.setValue(KEY_AUTO_UPDATE, bool(enabled))
+    settings.sync()
+
+
+def get_skipped_update_version() -> str:
+    return str(app_settings().value(KEY_SKIPPED_VERSION, "") or "").strip()
+
+
+def set_skipped_update_version(version: str) -> None:
+    settings = app_settings()
+    version = version.strip()
+    if version:
+        settings.setValue(KEY_SKIPPED_VERSION, version)
+    else:
+        settings.remove(KEY_SKIPPED_VERSION)
+    settings.sync()
+
+
+def mark_update_checked(now: float | None = None) -> None:
+    settings = app_settings()
+    settings.setValue(KEY_LAST_UPDATE_CHECK, time.time() if now is None else now)
+    settings.sync()
+
+
+def auto_update_check_due(now: float | None = None) -> bool:
+    """True when the automatic check is enabled and last ran over a day ago."""
+    if not get_auto_update_check():
+        return False
+    try:
+        last = float(app_settings().value(KEY_LAST_UPDATE_CHECK, 0.0) or 0.0)
+    except (TypeError, ValueError):
+        last = 0.0
+    now = time.time() if now is None else now
+    return (now - last) >= AUTO_UPDATE_INTERVAL_HOURS * 3600
 
 
 def try_gh_cli_token() -> str | None:

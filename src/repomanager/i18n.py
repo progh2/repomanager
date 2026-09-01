@@ -19,6 +19,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "menu.help": {"ko": "도움말(&H)", "en": "Help(&H)", "ja": "ヘルプ(&H)"},
     "menu.delete_help": {"ko": "삭제 권한 안내...", "en": "Delete permission help...", "ja": "削除権限の案内..."},
     "menu.about": {"ko": "정보(&A)...", "en": "About(&A)...", "ja": "情報(&A)..."},
+    "menu.check_update": {"ko": "업데이트 확인(&U)...", "en": "Check for updates(&U)...", "ja": "アップデートを確認(&U)..."},
 
     "btn.refresh": {"ko": "새로고침", "en": "Refresh", "ja": "更新"},
     "btn.select_all": {"ko": "전체 선택", "en": "Select all", "ja": "すべて選択"},
@@ -36,6 +37,60 @@ STRINGS: dict[str, dict[str, str]] = {
         "ja": "準備完了。必要なら設定を開き、更新してください。",
     },
     "auth.label": {"ko": "인증: {src}", "en": "Auth: {src}", "ja": "認証: {src}"},
+
+    "update.title": {"ko": "업데이트", "en": "Update", "ja": "アップデート"},
+    "update.checking": {"ko": "업데이트를 확인하는 중...", "en": "Checking for updates...", "ja": "アップデートを確認しています..."},
+    "update.available": {
+        "ko": "새 버전 {latest} 이(가) 있습니다. (현재 {current})",
+        "en": "Version {latest} is available. (You have {current})",
+        "ja": "新しいバージョン {latest} があります。(現在 {current})",
+    },
+    "update.up_to_date": {
+        "ko": "최신 버전입니다. (v{version})",
+        "en": "You are up to date. (v{version})",
+        "ja": "最新バージョンです。(v{version})",
+    },
+    "update.notes": {"ko": "변경 사항", "en": "What's new", "ja": "変更点"},
+    "update.no_notes": {"ko": "(변경 사항이 제공되지 않았습니다.)", "en": "(No release notes provided.)", "ja": "(リリースノートはありません。)"},
+    "update.size": {"ko": "다운로드 크기: {mb} MB", "en": "Download size: {mb} MB", "ja": "ダウンロードサイズ: {mb} MB"},
+    "update.btn_install": {"ko": "다운로드 후 설치", "en": "Download and install", "ja": "ダウンロードしてインストール"},
+    "update.btn_page": {"ko": "릴리스 페이지 열기", "en": "Open release page", "ja": "リリースページを開く"},
+    "update.btn_skip": {"ko": "이 버전 건너뛰기", "en": "Skip this version", "ja": "このバージョンをスキップ"},
+    "update.btn_later": {"ko": "나중에", "en": "Later", "ja": "後で"},
+    "update.btn_cancel": {"ko": "다운로드 취소", "en": "Cancel download", "ja": "ダウンロードを中止"},
+    "update.downloading": {
+        "ko": "다운로드 중... {done} / {total} MB",
+        "en": "Downloading... {done} / {total} MB",
+        "ja": "ダウンロード中... {done} / {total} MB",
+    },
+    "update.installing": {"ko": "설치를 준비하는 중...", "en": "Preparing the installer...", "ja": "インストールを準備しています..."},
+    "update.cancelled": {"ko": "다운로드를 취소했습니다.", "en": "Download cancelled.", "ja": "ダウンロードを中止しました。"},
+    "update.restart_title": {"ko": "재시작 필요", "en": "Restart required", "ja": "再起動が必要です"},
+    "update.restart_text": {
+        "ko": "RepoManager를 종료하고 v{version} 을(를) 설치한 뒤 다시 시작합니다. 계속할까요?",
+        "en": "RepoManager will quit, install v{version}, and start again. Continue?",
+        "ja": "RepoManager を終了して v{version} をインストールし、再起動します。続行しますか？",
+    },
+    "update.source_mode": {
+        "ko": "소스에서 실행 중이라 앱 안에서 설치할 수 없습니다. 'git pull' 로 업데이트하거나 릴리스 페이지에서 실행파일을 받으세요.",
+        "en": "Running from source, so the in-app installer is unavailable. Update with 'git pull' or download an executable from the release page.",
+        "ja": "ソースから実行中のため、アプリ内インストールは利用できません。'git pull' で更新するか、リリースページから実行ファイルを取得してください。",
+    },
+    "update.no_asset": {
+        "ko": "이 릴리스에는 현재 플랫폼({platform})용 실행파일이 없습니다. 릴리스 페이지에서 직접 확인하세요.",
+        "en": "This release has no executable for your platform ({platform}). Check the release page directly.",
+        "ja": "このリリースには現在のプラットフォーム({platform})向けの実行ファイルがありません。リリースページをご確認ください。",
+    },
+    "update.failed": {"ko": "업데이트 실패", "en": "Update failed", "ja": "アップデート失敗"},
+
+    "settings.updates": {"ko": "업데이트", "en": "Updates", "ja": "アップデート"},
+    "settings.auto_check": {
+        "ko": "시작할 때 자동으로 새 버전 확인 (하루 1회)",
+        "en": "Check for new versions on startup (once a day)",
+        "ja": "起動時に新しいバージョンを確認する (1日1回)",
+    },
+    "settings.check_update_now": {"ko": "지금 확인", "en": "Check now", "ja": "今すぐ確認"},
+    "settings.update_version": {"ko": "현재 버전: v{version}", "en": "Current version: v{version}", "ja": "現在のバージョン: v{version}"},
 
     "pane.active": {"ko": "활성", "en": "Active", "ja": "アクティブ"},
     "pane.archive": {"ko": "아카이브", "en": "Archive", "ja": "アーカイブ"},

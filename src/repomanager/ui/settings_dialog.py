@@ -20,13 +20,17 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from repomanager import __version__
 from repomanager.config import (
     clear_saved_token,
+    get_auto_update_check,
     get_oauth_client_id,
     get_saved_token,
     get_use_gh_cli,
+    set_auto_update_check,
     set_oauth_client_id,
     set_saved_token,
+    set_skipped_update_version,
     set_use_gh_cli,
     token_source_label,
     token_storage_is_secure,
@@ -122,6 +126,18 @@ class SettingsDialog(QDialog):
         lang_form.addRow(tr("settings.language"), self.language_combo)
         lang_form.addRow(tr("settings.theme"), self.theme_combo)
 
+        # --- Updates ---
+        self.auto_update = QCheckBox(tr("settings.auto_check"))
+        self.auto_update.setChecked(get_auto_update_check())
+        check_now_btn = QPushButton(tr("settings.check_update_now"))
+        check_now_btn.clicked.connect(self._check_updates_now)
+
+        update_box = QGroupBox(tr("settings.updates"))
+        update_layout = QVBoxLayout(update_box)
+        update_layout.addWidget(QLabel(tr("settings.update_version", version=__version__)))
+        update_layout.addWidget(self.auto_update)
+        update_layout.addWidget(check_now_btn)
+
         # --- Permission guide ---
         guide = QTextBrowser()
         guide.setOpenExternalLinks(True)
@@ -214,6 +230,7 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(self.source_label)
         layout.addWidget(lang_box)
+        layout.addWidget(update_box)
         layout.addWidget(guide)
         layout.addWidget(pat_box)
         layout.addWidget(gh_box)
@@ -221,6 +238,15 @@ class SettingsDialog(QDialog):
         layout.addWidget(help_browser)
         layout.addWidget(clear_btn)
         layout.addWidget(buttons)
+
+    def _check_updates_now(self) -> None:
+        """Save the toggle, clear any skip, and let the main window run the check."""
+        set_auto_update_check(self.auto_update.isChecked())
+        set_skipped_update_version("")
+        window = self.parent()
+        if window is not None and hasattr(window, "check_for_updates"):
+            self.accept()
+            window.check_for_updates(manual=True)
 
     def _copy_delete_cmd(self) -> None:
         QGuiApplication.clipboard().setText(GH_DELETE_CMD)
@@ -293,6 +319,7 @@ class SettingsDialog(QDialog):
         set_oauth_client_id(self.client_id_edit.text())
         set_use_gh_cli(self.use_gh.isChecked())
         set_saved_token(self.token_edit.text())
+        set_auto_update_check(self.auto_update.isChecked())
         set_theme(str(self.theme_combo.currentData() or "light"))
         pref = str(self.language_combo.currentData() or "auto")
         set_saved_language_preference(pref)
