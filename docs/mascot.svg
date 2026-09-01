@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 210" role="img" aria-label="RepoManager 마스코트">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c6df0"/>
+    </linearGradient>
+    <linearGradient id="arm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9b8afa"/>
+      <stop offset="100%" stop-color="#6d5de6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- tentacles -->
+  <g fill="url(#arm)">
+    <path d="M62 150c-16 6-28 20-30 36 0 5 7 6 9 2 5-12 14-21 26-25z"/>
+    <path d="M84 160c-10 12-14 27-11 42 1 5 8 4 9 0 2-13 7-24 15-32z"/>
+    <path d="M136 160c10 12 14 27 11 42-1 5-8 4-9 0-2-13-7-24-15-32z"/>
+    <path d="M158 150c16 6 28 20 30 36 0 5-7 6-9 2-5-12-14-21-26-25z"/>
+  </g>
+
+  <!-- ears -->
+  <path d="M56 46c-3-14 1-24 5-25 5-1 14 6 21 17z" fill="#8b7af5"/>
+  <path d="M164 46c3-14-1-24-5-25-5-1-14 6-21 17z" fill="#8b7af5"/>
+
+  <!-- head / body -->
+  <ellipse cx="110" cy="100" rx="66" ry="60" fill="url(#body)"/>
+
+  <!-- face patch -->
+  <ellipse cx="110" cy="112" rx="42" ry="32" fill="#f6f3ff" opacity=".28"/>
+
+  <!-- eyes -->
+  <ellipse cx="88" cy="96" rx="10" ry="12" fill="#2b2350"/>
+  <ellipse cx="132" cy="96" rx="10" ry="12" fill="#2b2350"/>
+  <circle cx="91.5" cy="91" r="3.6" fill="#fff"/>
+  <circle cx="135.5" cy="91" r="3.6" fill="#fff"/>
+
+  <!-- blush -->
+  <ellipse cx="70" cy="115" rx="9" ry="6" fill="#ff9ec4" opacity=".75"/>
+  <ellipse cx="150" cy="115" rx="9" ry="6" fill="#ff9ec4" opacity=".75"/>
+
+  <!-- smile -->
+  <path d="M100 116c3 4 7 4 10 0" fill="none" stroke="#2b2350" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M110 116c3 4 7 4 10 0" fill="none" stroke="#2b2350" stroke-width="3.4" stroke-linecap="round"/>
+
+  <!-- a tidy little box being carried -->
+  <g transform="translate(150 130) rotate(-12)">
+    <rect x="0" y="0" width="42" height="32" rx="6" fill="#ffd166"/>
+    <rect x="0" y="0" width="42" height="11" rx="5" fill="#ffb703"/>
+    <rect x="17" y="4" width="8" height="24" rx="3" fill="#fff" opacity=".7"/>
+  </g>
+</svg>

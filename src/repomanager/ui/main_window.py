@@ -19,16 +19,21 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from repomanager import __version__
 from repomanager.i18n import add_listener, remove_listener, tr
 from repomanager.config import (
     ConfigError,
     app_settings,
+    auto_update_check_due,
     get_github_token,
+    get_skipped_update_version,
+    mark_update_checked,
     token_source_label,
 )
 from repomanager.models.repository import Repository
 from repomanager.services.github_client import RateLimitInfo
 from repomanager.services.repo_cache import load_cache, save_cache
+from repomanager.services.updater import UpdateInfo
 from repomanager.ui.about_dialog import AboutDialog
 from repomanager.ui.confirm_dialog import ConfirmDialog
 from repomanager.ui.dual_repo_lists import DualRepoLists
@@ -36,6 +41,7 @@ from repomanager.ui.loading_overlay import LoadingOverlay
 from repomanager.ui.repo_detail_panel import RepoDetailPanel
 from repomanager.ui.rename_dialog import RenameDialog
 from repomanager.ui.settings_dialog import SettingsDialog
+from repomanager.ui.update_dialog import UpdateDialog
 from repomanager.workers.api_worker import (
     BackupRepositoriesWorker,
     BulkActionResult,
@@ -47,6 +53,7 @@ from repomanager.workers.api_worker import (
     ToggleVisibilityWorker,
     UpdateDescriptionWorker,
 )
+from repomanager.workers.update_worker import CheckUpdateWorker
 
 GH_DELETE_CMD = "gh auth refresh -h github.com -s delete_repo"
 
@@ -56,7 +63,8 @@ def action_label(action: str) -> str:
 
 
 class MainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, *, auto_start: bool = True) -> None:
+        """``auto_start=False`` skips cache load, token prompt, and update check."""
         super().__init__()
         self.setWindowTitle("RepoManager")
         geometry = app_settings().value("ui/geometry")
@@ -73,6 +81,8 @@ class MainWindow(QMainWindow):
         self._quit_action = None
         self._delete_help_action = None
         self._about_action = None
+        self._update_action = None
+        self._update_check_manual = False
 
         self._build_menu()
 
@@ -160,7 +170,8 @@ class MainWindow(QMainWindow):
         self._set_action_buttons_enabled(False)
         self.retranslate_ui()
         add_listener(self.retranslate_ui)
-        self._startup()
+        if auto_start:
+            self._startup()
 
     def closeEvent(self, event) -> None:  # noqa: N802
         app_settings().setValue("ui/geometry", self.saveGeometry())
@@ -176,6 +187,8 @@ class MainWindow(QMainWindow):
             self._set_status(
                 tr("status.cache_shown", time=cached.saved_at.strftime("%Y-%m-%d %H:%M"))
             )
+        if auto_update_check_due():
+            QTimer.singleShot(3000, lambda: self.check_for_updates(manual=False))
         try:
             get_github_token()
         except ConfigError:
@@ -196,6 +209,8 @@ class MainWindow(QMainWindow):
             self._quit_action.setText(tr("menu.quit"))
         if self._delete_help_action is not None:
             self._delete_help_action.setText(tr("menu.delete_help"))
+        if self._update_action is not None:
+            self._update_action.setText(tr("menu.check_update"))
         if self._about_action is not None:
             self._about_action.setText(tr("menu.about"))
         self.refresh_btn.setText(tr("btn.refresh"))
@@ -240,6 +255,9 @@ class MainWindow(QMainWindow):
         self._delete_help_action = QAction(tr("menu.delete_help"), self)
         self._delete_help_action.triggered.connect(self.show_delete_permission_help)
         self._help_menu.addAction(self._delete_help_action)
+        self._update_action = QAction(tr("menu.check_update"), self)
+        self._update_action.triggered.connect(lambda: self.check_for_updates(manual=True))
+        self._help_menu.addAction(self._update_action)
         self._about_action = QAction(tr("menu.about"), self)
         self._about_action.triggered.connect(self.show_about)
         self._help_menu.addAction(self._about_action)
@@ -251,6 +269,39 @@ class MainWindow(QMainWindow):
             self.repo_lists.update()
             self._auth_label.setText(tr("auth.label", src=token_source_label()))
             self._set_status(tr("status.settings_saved"))
+
+    def check_for_updates(self, *, manual: bool = True) -> None:
+        """Ask GitHub for a newer release; only manual checks report 'up to date'."""
+        self._update_check_manual = manual
+        mark_update_checked()
+        if manual:
+            self._set_status(tr("update.checking"))
+        worker = CheckUpdateWorker()
+        worker.signals.finished.connect(self._on_update_checked)
+        worker.signals.error.connect(self._on_update_check_error)
+        self._pool.start(worker)
+
+    def _on_update_checked(self, info: object) -> None:
+        manual, self._update_check_manual = self._update_check_manual, False
+        if not isinstance(info, UpdateInfo):
+            if manual:
+                self._set_status(tr("update.up_to_date", version=__version__))
+                QMessageBox.information(
+                    self,
+                    tr("update.title"),
+                    tr("update.up_to_date", version=__version__),
+                )
+            return
+        if not manual and info.version == get_skipped_update_version():
+            return
+        UpdateDialog(info, self).exec()
+
+    def _on_update_check_error(self, message: str) -> None:
+        # A background check that cannot reach GitHub stays silent.
+        manual, self._update_check_manual = self._update_check_manual, False
+        if manual:
+            self._set_status(message)
+            QMessageBox.warning(self, tr("update.failed"), message)
 
     def show_about(self) -> None:
         AboutDialog(self).exec()

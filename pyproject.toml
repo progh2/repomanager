@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "repomanager"
-version = "0.3.0"
+version = "0.4.1"
 description = "Desktop GUI to list, archive, and delete GitHub repositories in bulk"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,6 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]
+build = ["pyinstaller>=6.6", "pillow>=10.0"]
 
 [project.scripts]
 repomanager = "repomanager.__main__:main"
