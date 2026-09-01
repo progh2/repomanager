@@ -236,16 +236,18 @@ def test_install_stages_helper_script(
 
 @patch("repomanager.services.updater.is_frozen", return_value=True)
 def test_install_reports_unwritable_location(_frozen: MagicMock, tmp_path: Path) -> None:
+    """An install directory the user cannot write to must fail before staging.
+
+    os.access is patched rather than chmod'ing a directory: on Windows chmod
+    does not make a directory read-only, so the filesystem trick is POSIX-only.
+    """
     artifact = tmp_path / "RepoManager-0.4.0-linux-x86_64"
     artifact.write_bytes(b"new build")
-    unwritable = tmp_path / "locked"
-    unwritable.mkdir()
-    target = unwritable / "RepoManager"
+    target = tmp_path / "locked" / "RepoManager"
+    target.parent.mkdir()
     target.write_bytes(b"old")
-    unwritable.chmod(0o500)
-    try:
-        with patch("repomanager.services.updater.install_target", return_value=target):
+
+    with patch("repomanager.services.updater.install_target", return_value=target):
+        with patch("repomanager.services.updater.os.access", return_value=False):
             with pytest.raises(UpdateError, match="No write permission"):
                 install(artifact)
-    finally:
-        unwritable.chmod(0o700)
