@@ -20,6 +20,11 @@ STRINGS: dict[str, dict[str, str]] = {
     "menu.delete_help": {"ko": "삭제 권한 안내...", "en": "Delete permission help...", "ja": "削除権限の案内..."},
     "menu.about": {"ko": "정보(&A)...", "en": "About(&A)...", "ja": "情報(&A)..."},
     "menu.check_update": {"ko": "업데이트 확인(&U)...", "en": "Check for updates(&U)...", "ja": "アップデートを確認(&U)..."},
+    "menu.auto_update": {
+        "ko": "시작할 때 자동으로 확인",
+        "en": "Check automatically on startup",
+        "ja": "起動時に自動で確認",
+    },
 
     "btn.refresh": {"ko": "새로고침", "en": "Refresh", "ja": "更新"},
     "btn.select_all": {"ko": "전체 선택", "en": "Select all", "ja": "すべて選択"},
@@ -83,14 +88,6 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "update.failed": {"ko": "업데이트 실패", "en": "Update failed", "ja": "アップデート失敗"},
 
-    "settings.updates": {"ko": "업데이트", "en": "Updates", "ja": "アップデート"},
-    "settings.auto_check": {
-        "ko": "시작할 때 자동으로 새 버전 확인 (하루 1회)",
-        "en": "Check for new versions on startup (once a day)",
-        "ja": "起動時に新しいバージョンを確認する (1日1回)",
-    },
-    "settings.check_update_now": {"ko": "지금 확인", "en": "Check now", "ja": "今すぐ確認"},
-    "settings.update_version": {"ko": "현재 버전: v{version}", "en": "Current version: v{version}", "ja": "現在のバージョン: v{version}"},
 
     "pane.active": {"ko": "활성", "en": "Active", "ja": "アクティブ"},
     "pane.archive": {"ko": "아카이브", "en": "Archive", "ja": "アーカイブ"},
